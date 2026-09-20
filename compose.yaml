@@ -1,0 +1,76 @@
+name: pnet
+
+services:
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - backend
+
+
+  api:
+    profiles:
+      - app
+
+    build:
+      context: ./apps/api
+
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+
+    ports:
+      - "127.0.0.1:3001:3000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - backend
+
+
+  web:
+    profiles:
+      - app
+
+    build:
+      context: ./apps/web
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8091:80"
+
+    depends_on:
+      - api
+
+    networks:
+      - backend
+
+
+networks:
+  backend:
+
+
+volumes:
+  db_data:
