@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Person {
+  id         String   @id @default(uuid())
+  firstName  String
+  lastName   String?
+  nickname   String?
+  email      String?
+  phone      String?
+  company    String?
+  position   String?
+  city       String?
+  country    String?
+  notes      String?
+  importance Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  categories PersonCategory[]
+  interests  PersonInterest[]
+
+  outgoingRelationships Relationship[] @relation("RelationshipFrom")
+  incomingRelationships Relationship[] @relation("RelationshipTo")
+}
+
+model Relationship {
+  id        String   @id @default(uuid())
+  fromId    String
+  toId      String
+  type      String?
+  strength  Int      @default(1)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  from Person @relation("RelationshipFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Person @relation("RelationshipTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  people PersonCategory[]
+}
+
+model Interest {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  people PersonInterest[]
+}
+
+model PersonCategory {
+  personId   String
+  categoryId String
+
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([personId, categoryId])
+}
+
+model PersonInterest {
+  personId   String
+  interestId String
+
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([personId, interestId])
+}

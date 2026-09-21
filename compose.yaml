@@ -31,7 +31,8 @@ services:
       - app
 
     build:
-      context: ./apps/api
+      context: .
+      dockerfile: apps/api/Dockerfile
 
     restart: unless-stopped
 
