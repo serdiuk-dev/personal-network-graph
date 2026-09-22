@@ -46,7 +46,11 @@ const emptyForm: PersonForm = {
   importance: 1,
 };
 
-export function PeopleManager() {
+type PeopleManagerProps = {
+  onChanged: () => void;
+};
+
+export function PeopleManager({ onChanged }: PeopleManagerProps) {
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<PersonForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -180,6 +184,7 @@ export function PeopleManager() {
 
       resetForm();
       await loadPeople();
+      onChanged();
     } catch (err) {
       setError(
         err instanceof Error
@@ -217,6 +222,7 @@ export function PeopleManager() {
       }
 
       await loadPeople();
+      onChanged();
     } catch (err) {
       setError(
         err instanceof Error
@@ -481,6 +487,7 @@ export function PeopleManager() {
         <PersonTaxonomyManager
           personId={taxonomyPersonId}
           onClose={() => setTaxonomyPersonId(null)}
+          onChanged={onChanged}
         />
       )}
     </main>

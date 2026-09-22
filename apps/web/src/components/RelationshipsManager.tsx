@@ -34,7 +34,13 @@ const emptyForm: RelationshipForm = {
   notes: '',
 };
 
-export function RelationshipsManager() {
+type RelationshipsManagerProps = {
+  onChanged: () => void;
+};
+
+export function RelationshipsManager({
+  onChanged,
+}: RelationshipsManagerProps) {
   const [people, setPeople] = useState<Person[]>([]);
   const [relationships, setRelationships] =
     useState<Relationship[]>([]);
@@ -178,6 +184,7 @@ export function RelationshipsManager() {
 
       resetForm();
       await loadData();
+      onChanged();
     } catch (err) {
       setError(
         err instanceof Error
@@ -224,6 +231,7 @@ export function RelationshipsManager() {
       }
 
       await loadData();
+      onChanged();
     } catch (err) {
       setError(
         err instanceof Error

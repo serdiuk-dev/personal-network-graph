@@ -41,7 +41,11 @@ type GraphResponse = {
   };
 };
 
-export function NetworkGraph() {
+type NetworkGraphProps = {
+  refreshKey: number;
+};
+
+export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sigmaRef = useRef<Sigma | null>(null);
   const graphRef = useRef<Graph | null>(null);
@@ -56,6 +60,7 @@ export function NetworkGraph() {
     useState<GraphNode | null>(null);
 
   const [search, setSearch] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   function selectNode(nodeId: string | null) {
@@ -291,7 +296,7 @@ export function NetworkGraph() {
       sigmaRef.current = null;
       graphRef.current = null;
     };
-  }, []);
+  }, [refreshKey, reloadKey]);
 
   return (
     <main
@@ -321,6 +326,13 @@ export function NetworkGraph() {
 
           <span>People: {meta.nodeCount}</span>
           <span>Relationships: {meta.edgeCount}</span>
+
+          <button
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+          >
+            Refresh
+          </button>
 
           <form
             onSubmit={handleSearchSubmit}

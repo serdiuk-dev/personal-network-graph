@@ -16,11 +16,13 @@ type PersonDetail = {
 type Props = {
   personId: string;
   onClose: () => void;
+  onChanged: () => void;
 };
 
 export function PersonTaxonomyManager({
   personId,
   onClose,
+  onChanged,
 }: Props) {
   const [person, setPerson] = useState<PersonDetail | null>(null);
   const [categories, setCategories] = useState<TaxonomyItem[]>([]);
@@ -83,6 +85,7 @@ export function PersonTaxonomyManager({
 
     setNewCategory('');
     await loadData();
+    onChanged();
   }
 
   async function createInterest() {
@@ -105,6 +108,7 @@ export function PersonTaxonomyManager({
 
     setNewInterest('');
     await loadData();
+    onChanged();
   }
 
   async function toggleCategory(category: TaxonomyItem) {
@@ -127,6 +131,7 @@ export function PersonTaxonomyManager({
     }
 
     await loadData();
+    onChanged();
   }
 
   async function toggleInterest(interest: TaxonomyItem) {
@@ -149,6 +154,7 @@ export function PersonTaxonomyManager({
     }
 
     await loadData();
+    onChanged();
   }
 
   if (!person) {

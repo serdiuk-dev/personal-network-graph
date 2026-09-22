@@ -9,8 +9,12 @@ type View =
   | 'relationships';
 
 function App() {
-  const [view, setView] =
-    useState<View>('graph');
+  const [view, setView] = useState<View>('graph');
+  const [graphVersion, setGraphVersion] = useState(0);
+
+  function notifyGraphChanged() {
+    setGraphVersion((version) => version + 1);
+  }
 
   return (
     <div
@@ -29,54 +33,34 @@ function App() {
           alignItems: 'center',
           gap: '10px',
           padding: '0 18px',
-          borderBottom:
-            '1px solid #ddd',
+          borderBottom: '1px solid #ddd',
           fontFamily: 'sans-serif',
         }}
       >
-        <strong
-          style={{
-            marginRight: '20px',
-          }}
-        >
+        <strong style={{ marginRight: '20px' }}>
           Personal Network
         </strong>
 
         <button
           type="button"
-          onClick={() =>
-            setView('graph')
-          }
-          disabled={
-            view === 'graph'
-          }
+          onClick={() => setView('graph')}
+          disabled={view === 'graph'}
         >
           Graph
         </button>
 
         <button
           type="button"
-          onClick={() =>
-            setView('people')
-          }
-          disabled={
-            view === 'people'
-          }
+          onClick={() => setView('people')}
+          disabled={view === 'people'}
         >
           People
         </button>
 
         <button
           type="button"
-          onClick={() =>
-            setView(
-              'relationships',
-            )
-          }
-          disabled={
-            view ===
-            'relationships'
-          }
+          onClick={() => setView('relationships')}
+          disabled={view === 'relationships'}
         >
           Relationships
         </button>
@@ -86,23 +70,21 @@ function App() {
         style={{
           flex: 1,
           minHeight: 0,
-          overflow:
-            view === 'graph'
-              ? 'hidden'
-              : 'auto',
+          overflow: view === 'graph' ? 'hidden' : 'auto',
         }}
       >
         {view === 'graph' && (
-          <NetworkGraph />
+          <NetworkGraph refreshKey={graphVersion} />
         )}
 
         {view === 'people' && (
-          <PeopleManager />
+          <PeopleManager onChanged={notifyGraphChanged} />
         )}
 
-        {view ===
-          'relationships' && (
-          <RelationshipsManager />
+        {view === 'relationships' && (
+          <RelationshipsManager
+            onChanged={notifyGraphChanged}
+          />
         )}
       </div>
     </div>
