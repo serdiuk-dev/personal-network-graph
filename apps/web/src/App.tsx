@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { NetworkGraph } from './components/NetworkGraph';
 import { PeopleManager } from './components/PeopleManager';
 import { RelationshipsManager } from './components/RelationshipsManager';
+import { TaxonomyManager } from './components/TaxonomyManager';
 
 type View =
   | 'graph'
   | 'people'
-  | 'relationships';
+  | 'relationships'
+  | 'taxonomy';
 
 function App() {
   const [view, setView] = useState<View>('graph');
@@ -64,6 +66,14 @@ function App() {
         >
           Relationships
         </button>
+
+        <button
+          type="button"
+          onClick={() => setView('taxonomy')}
+          disabled={view === 'taxonomy'}
+        >
+          Categories / Interests
+        </button>
       </nav>
 
       <div
@@ -83,6 +93,12 @@ function App() {
 
         {view === 'relationships' && (
           <RelationshipsManager
+            onChanged={notifyGraphChanged}
+          />
+        )}
+
+        {view === 'taxonomy' && (
+          <TaxonomyManager
             onChanged={notifyGraphChanged}
           />
         )}
