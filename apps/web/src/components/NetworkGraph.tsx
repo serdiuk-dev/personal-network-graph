@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import Graph from 'graphology';
+import forceAtlas2 from 'graphology-layout-forceatlas2';
 import Sigma from 'sigma';
+
+type TaxonomyItem = {
+  id: string;
+  name: string;
+};
 
 type GraphNode = {
   id: string;
@@ -13,14 +19,8 @@ type GraphNode = {
   city: string | null;
   country: string | null;
   importance: number;
-  categories: {
-    id: string;
-    name: string;
-  }[];
-  interests: {
-    id: string;
-    name: string;
-  }[];
+  categories: TaxonomyItem[];
+  interests: TaxonomyItem[];
 };
 
 type GraphEdge = {
@@ -49,6 +49,9 @@ export function NetworkGraph() {
     edgeCount: 0,
   });
 
+  const [selectedNode, setSelectedNode] =
+    useState<GraphNode | null>(null);
+
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +62,9 @@ export function NetworkGraph() {
         const response = await fetch('/api/v1/graph');
 
         if (!response.ok) {
-          throw new Error(`Graph API returned HTTP ${response.status}`);
+          throw new Error(
+            `Graph API returned HTTP ${response.status}`,
+          );
         }
 
         const data: GraphResponse = await response.json();
@@ -80,8 +85,6 @@ export function NetworkGraph() {
             y: Math.sin(angle),
             size: 6 + node.importance * 2,
             importance: node.importance,
-            company: node.company,
-            city: node.city,
           });
         });
 
@@ -97,10 +100,18 @@ export function NetworkGraph() {
               {
                 label: edge.type ?? undefined,
                 size: Math.max(1, edge.strength),
+                weight: Math.max(1, edge.strength),
               },
             );
           }
         });
+
+        if (graph.order > 1) {
+          forceAtlas2.assign(graph, {
+            iterations: 100,
+            settings: forceAtlas2.inferSettings(graph),
+          });
+        }
 
         if (!containerRef.current) {
           return;
@@ -110,14 +121,36 @@ export function NetworkGraph() {
           renderEdgeLabels: true,
         });
 
+        renderer.on('clickNode', ({ node }) => {
+          const person =
+            data.nodes.find((item) => item.id === node) ?? null;
+
+          setSelectedNode(person);
+        });
+
+        renderer.on('clickStage', () => {
+          setSelectedNode(null);
+        });
+
+        renderer.on('enterNode', () => {
+          if (containerRef.current) {
+            containerRef.current.style.cursor = 'pointer';
+          }
+        });
+
+        renderer.on('leaveNode', () => {
+          if (containerRef.current) {
+            containerRef.current.style.cursor = 'default';
+          }
+        });
+
         setMeta(data.meta);
       } catch (err) {
-        const message =
+        setError(
           err instanceof Error
             ? err.message
-            : 'Unknown graph loading error';
-
-        setError(message);
+            : 'Unknown graph loading error',
+        );
       }
     }
 
@@ -129,38 +162,112 @@ export function NetworkGraph() {
   }, []);
 
   return (
-    <section style={{ width: '100%', height: '100%' }}>
-      <div
+    <main
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        fontFamily: 'sans-serif',
+      }}
+    >
+      <section
         style={{
-          display: 'flex',
-          gap: '24px',
-          padding: '12px 16px',
-          fontFamily: 'sans-serif',
+          flex: 1,
+          minWidth: 0,
         }}
       >
-        <span>People: {meta.nodeCount}</span>
-        <span>Relationships: {meta.edgeCount}</span>
-      </div>
-
-      {error ? (
-        <div
+        <header
           style={{
-            padding: '20px',
-            color: 'crimson',
-            fontFamily: 'sans-serif',
+            display: 'flex',
+            gap: '24px',
+            padding: '14px 18px',
+            borderBottom: '1px solid #ddd',
           }}
         >
-          {error}
-        </div>
-      ) : (
-        <div
-          ref={containerRef}
+          <strong>Personal Network Graph</strong>
+          <span>People: {meta.nodeCount}</span>
+          <span>Relationships: {meta.edgeCount}</span>
+        </header>
+
+        {error ? (
+          <div style={{ padding: '20px' }}>{error}</div>
+        ) : (
+          <div
+            ref={containerRef}
+            style={{
+              width: '100%',
+              height: 'calc(100vh - 50px)',
+            }}
+          />
+        )}
+      </section>
+
+      {selectedNode && (
+        <aside
           style={{
-            width: '100%',
-            height: 'calc(100vh - 60px)',
+            width: '320px',
+            padding: '24px',
+            borderLeft: '1px solid #ddd',
+            overflowY: 'auto',
           }}
-        />
+        >
+          <h2>{selectedNode.label}</h2>
+
+          {selectedNode.nickname && (
+            <p>Nickname: {selectedNode.nickname}</p>
+          )}
+
+          {selectedNode.company && (
+            <p>Company: {selectedNode.company}</p>
+          )}
+
+          {selectedNode.position && (
+            <p>Position: {selectedNode.position}</p>
+          )}
+
+          {(selectedNode.city || selectedNode.country) && (
+            <p>
+              Location:{' '}
+              {[selectedNode.city, selectedNode.country]
+                .filter(Boolean)
+                .join(', ')}
+            </p>
+          )}
+
+          <p>Importance: {selectedNode.importance}/5</p>
+
+          <h3>Categories</h3>
+
+          {selectedNode.categories.length > 0 ? (
+            <ul>
+              {selectedNode.categories.map((category) => (
+                <li key={category.id}>{category.name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>None</p>
+          )}
+
+          <h3>Interests</h3>
+
+          {selectedNode.interests.length > 0 ? (
+            <ul>
+              {selectedNode.interests.map((interest) => (
+                <li key={interest.id}>{interest.name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>None</p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setSelectedNode(null)}
+          >
+            Close
+          </button>
+        </aside>
       )}
-    </section>
+    </main>
   );
 }
