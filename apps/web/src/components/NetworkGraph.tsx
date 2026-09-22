@@ -296,8 +296,8 @@ export function NetworkGraph() {
   return (
     <main
       style={{
-        width: '100vw',
-        height: '100vh',
+        width: '100%',
+        height: '100%',
         display: 'flex',
         fontFamily: 'sans-serif',
       }}
@@ -366,7 +366,7 @@ export function NetworkGraph() {
             ref={containerRef}
             style={{
               width: '100%',
-              height: 'calc(100vh - 58px)',
+              height: 'calc(100% - 58px)',
             }}
           />
         )}
