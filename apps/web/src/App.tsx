@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { NetworkGraph } from './components/NetworkGraph';
 import { PeopleManager } from './components/PeopleManager';
+import { RelationshipsManager } from './components/RelationshipsManager';
 
-type View = 'graph' | 'people';
+type View =
+  | 'graph'
+  | 'people'
+  | 'relationships';
 
 function App() {
-  const [view, setView] = useState<View>('graph');
+  const [view, setView] =
+    useState<View>('graph');
 
   return (
     <div
@@ -24,28 +29,56 @@ function App() {
           alignItems: 'center',
           gap: '10px',
           padding: '0 18px',
-          borderBottom: '1px solid #ddd',
+          borderBottom:
+            '1px solid #ddd',
           fontFamily: 'sans-serif',
         }}
       >
-        <strong style={{ marginRight: '20px' }}>
+        <strong
+          style={{
+            marginRight: '20px',
+          }}
+        >
           Personal Network
         </strong>
 
         <button
           type="button"
-          onClick={() => setView('graph')}
-          disabled={view === 'graph'}
+          onClick={() =>
+            setView('graph')
+          }
+          disabled={
+            view === 'graph'
+          }
         >
           Graph
         </button>
 
         <button
           type="button"
-          onClick={() => setView('people')}
-          disabled={view === 'people'}
+          onClick={() =>
+            setView('people')
+          }
+          disabled={
+            view === 'people'
+          }
         >
           People
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            setView(
+              'relationships',
+            )
+          }
+          disabled={
+            view ===
+            'relationships'
+          }
+        >
+          Relationships
         </button>
       </nav>
 
@@ -54,13 +87,22 @@ function App() {
           flex: 1,
           minHeight: 0,
           overflow:
-            view === 'people' ? 'auto' : 'hidden',
+            view === 'graph'
+              ? 'hidden'
+              : 'auto',
         }}
       >
-        {view === 'graph' ? (
+        {view === 'graph' && (
           <NetworkGraph />
-        ) : (
+        )}
+
+        {view === 'people' && (
           <PeopleManager />
+        )}
+
+        {view ===
+          'relationships' && (
+          <RelationshipsManager />
         )}
       </div>
     </div>
