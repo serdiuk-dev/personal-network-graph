@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+
+import { AnalyticsModule } from './analytics/analytics.module';
 import { CategoriesModule } from './categories/categories.module';
 import { GraphModule } from './graph/graph.module';
 import { HealthController } from './health.controller';
@@ -15,7 +17,10 @@ import { RelationshipsModule } from './relationships/relationships.module';
     CategoriesModule,
     InterestsModule,
     GraphModule,
+    AnalyticsModule,
   ],
-  controllers: [HealthController],
+  controllers: [
+    HealthController,
+  ],
 })
 export class AppModule {}
