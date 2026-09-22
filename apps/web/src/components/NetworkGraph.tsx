@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import Sigma from 'sigma';
@@ -45,25 +51,127 @@ type NetworkGraphProps = {
   refreshKey: number;
 };
 
-export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const sigmaRef = useRef<Sigma | null>(null);
-  const graphRef = useRef<Graph | null>(null);
-  const dataRef = useRef<GraphNode[]>([]);
+const CATEGORY_COLORS = [
+  '#2563eb',
+  '#16a34a',
+  '#9333ea',
+  '#ea580c',
+  '#0891b2',
+  '#be123c',
+  '#4f46e5',
+  '#65a30d',
+  '#c026d3',
+  '#0f766e',
+];
+
+function categoryColor(name: string | null) {
+  if (!name) {
+    return '#64748b';
+  }
+
+  let hash = 0;
+
+  for (let index = 0; index < name.length; index += 1) {
+    hash =
+      (hash * 31 + name.charCodeAt(index)) >>> 0;
+  }
+
+  return CATEGORY_COLORS[
+    hash % CATEGORY_COLORS.length
+  ];
+}
+
+function primaryCategory(node: GraphNode) {
+  if (node.categories.length === 0) {
+    return null;
+  }
+
+  return [...node.categories].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  )[0].name;
+}
+
+export function NetworkGraph({
+  refreshKey,
+}: NetworkGraphProps) {
+  const containerRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const sigmaRef =
+    useRef<Sigma | null>(null);
+
+  const graphRef =
+    useRef<Graph | null>(null);
+
+  const dataRef =
+    useRef<GraphNode[]>([]);
 
   const [meta, setMeta] = useState({
     nodeCount: 0,
     edgeCount: 0,
   });
 
+  const [visibleCount, setVisibleCount] =
+    useState(0);
+
   const [selectedNode, setSelectedNode] =
     useState<GraphNode | null>(null);
 
-  const [search, setSearch] = useState('');
-  const [reloadKey, setReloadKey] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] =
+    useState('');
 
-  function selectNode(nodeId: string | null) {
+  const [categoryFilter, setCategoryFilter] =
+    useState('');
+
+  const [interestFilter, setInterestFilter] =
+    useState('');
+
+  const [minImportance, setMinImportance] =
+    useState(1);
+
+  const [categories, setCategories] =
+    useState<TaxonomyItem[]>([]);
+
+  const [interests, setInterests] =
+    useState<TaxonomyItem[]>([]);
+
+  const [reloadKey, setReloadKey] =
+    useState(0);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+  function passesFilters(node: GraphNode) {
+    if (node.importance < minImportance) {
+      return false;
+    }
+
+    if (
+      categoryFilter &&
+      !node.categories.some(
+        (category) =>
+          category.id === categoryFilter,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      interestFilter &&
+      !node.interests.some(
+        (interest) =>
+          interest.id === interestFilter,
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function applyGraphView(
+    selectedId: string | null,
+  ) {
     const renderer = sigmaRef.current;
     const graph = graphRef.current;
 
@@ -71,126 +179,261 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
       return;
     }
 
+    const visibleIds = new Set(
+      dataRef.current
+        .filter(passesFilters)
+        .map((node) => node.id),
+    );
+
+    setVisibleCount(visibleIds.size);
+
+    const neighbors =
+      selectedId &&
+      graph.hasNode(selectedId)
+        ? new Set(graph.neighbors(selectedId))
+        : new Set<string>();
+
+    renderer.setSetting(
+      'nodeReducer',
+      (node, data) => {
+        const person =
+          dataRef.current.find(
+            (item) => item.id === node,
+          );
+
+        if (
+          !person ||
+          !visibleIds.has(node)
+        ) {
+          return {
+            ...data,
+            hidden: true,
+          };
+        }
+
+        const color = categoryColor(
+          primaryCategory(person),
+        );
+
+        if (!selectedId) {
+          return {
+            ...data,
+            hidden: false,
+            color,
+            size:
+              6 +
+              person.importance * 2,
+          };
+        }
+
+        if (node === selectedId) {
+          return {
+            ...data,
+            hidden: false,
+            color,
+            highlighted: true,
+            size: Math.max(
+              16,
+              6 +
+                person.importance *
+                  2,
+            ),
+            zIndex: 2,
+          };
+        }
+
+        if (neighbors.has(node)) {
+          return {
+            ...data,
+            hidden: false,
+            color,
+            highlighted: true,
+            zIndex: 1,
+          };
+        }
+
+        return {
+          ...data,
+          hidden: false,
+          color: '#d1d5db',
+          label: '',
+          zIndex: 0,
+        };
+      },
+    );
+
+    renderer.setSetting(
+      'edgeReducer',
+      (edge, data) => {
+        const source =
+          graph.source(edge);
+
+        const target =
+          graph.target(edge);
+
+        if (
+          !visibleIds.has(source) ||
+          !visibleIds.has(target)
+        ) {
+          return {
+            ...data,
+            hidden: true,
+          };
+        }
+
+        if (
+          selectedId &&
+          source !== selectedId &&
+          target !== selectedId
+        ) {
+          return {
+            ...data,
+            hidden: true,
+          };
+        }
+
+        return {
+          ...data,
+          hidden: false,
+          size: selectedId
+            ? Math.max(
+                data.size ?? 1,
+                2,
+              )
+            : data.size,
+          zIndex: selectedId
+            ? 1
+            : 0,
+        };
+      },
+    );
+
+    renderer.refresh();
+  }
+
+  function selectNode(
+    nodeId: string | null,
+  ) {
+    const renderer = sigmaRef.current;
+
+    if (!renderer) {
+      return;
+    }
+
     if (!nodeId) {
       setSelectedNode(null);
-
-      renderer.setSetting('nodeReducer', null);
-      renderer.setSetting('edgeReducer', null);
-      renderer.refresh();
-
+      applyGraphView(null);
       return;
     }
 
     const person =
-      dataRef.current.find((item) => item.id === nodeId) ?? null;
+      dataRef.current.find(
+        (item) =>
+          item.id === nodeId,
+      ) ?? null;
+
+    if (
+      !person ||
+      !passesFilters(person)
+    ) {
+      return;
+    }
 
     setSelectedNode(person);
+    applyGraphView(nodeId);
 
-    const neighbors = new Set(graph.neighbors(nodeId));
-
-    renderer.setSetting('nodeReducer', (node, data) => {
-      if (node === nodeId) {
-        return {
-          ...data,
-          highlighted: true,
-          size: Math.max(data.size ?? 8, 14),
-          zIndex: 2,
-        };
-      }
-
-      if (neighbors.has(node)) {
-        return {
-          ...data,
-          highlighted: true,
-          zIndex: 1,
-        };
-      }
-
-      return {
-        ...data,
-        color: '#d6d6d6',
-        label: '',
-        zIndex: 0,
-      };
-    });
-
-    renderer.setSetting('edgeReducer', (edge, data) => {
-      const source = graph.source(edge);
-      const target = graph.target(edge);
-
-      if (
-        source === nodeId ||
-        target === nodeId
-      ) {
-        return {
-          ...data,
-          hidden: false,
-          size: Math.max(data.size ?? 1, 2),
-          zIndex: 1,
-        };
-      }
-
-      return {
-        ...data,
-        hidden: true,
-      };
-    });
-
-    renderer.refresh();
-
-    const position = renderer.getNodeDisplayData(nodeId);
+    const position =
+      renderer.getNodeDisplayData(
+        nodeId,
+      );
 
     if (position) {
-      renderer.getCamera().animate(
-        {
-          x: position.x,
-          y: position.y,
-          ratio: 0.35,
-        },
-        {
-          duration: 500,
-        },
-      );
+      renderer
+        .getCamera()
+        .animate(
+          {
+            x: position.x,
+            y: position.y,
+            ratio: 0.35,
+          },
+          {
+            duration: 500,
+          },
+        );
     }
   }
 
-  function handleSearchSubmit(event: React.FormEvent) {
+  function handleSearchSubmit(
+    event: FormEvent,
+  ) {
     event.preventDefault();
 
-    const query = search.trim().toLowerCase();
+    const query =
+      search
+        .trim()
+        .toLowerCase();
 
     if (!query) {
       selectNode(null);
       return;
     }
 
-    const person = dataRef.current.find((node) => {
-      const haystack = [
-        node.label,
-        node.nickname,
-        node.company,
-        node.position,
-        node.city,
-        node.country,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+    const person =
+      dataRef.current.find(
+        (node) => {
+          if (
+            !passesFilters(node)
+          ) {
+            return false;
+          }
 
-      return haystack.includes(query);
-    });
+          const haystack = [
+            node.label,
+            node.nickname,
+            node.company,
+            node.position,
+            node.city,
+            node.country,
+            ...node.categories.map(
+              (item) => item.name,
+            ),
+            ...node.interests.map(
+              (item) => item.name,
+            ),
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+          return haystack.includes(
+            query,
+          );
+        },
+      );
 
     if (person) {
       selectNode(person.id);
     }
   }
 
+  function resetFilters() {
+    setCategoryFilter('');
+    setInterestFilter('');
+    setMinImportance(1);
+    setSearch('');
+    setSelectedNode(null);
+  }
+
   useEffect(() => {
-    let renderer: Sigma | null = null;
+    let renderer: Sigma | null =
+      null;
 
     async function loadGraph() {
       try {
-        const response = await fetch('/api/v1/graph');
+        const response =
+          await fetch(
+            '/api/v1/graph',
+          );
 
         if (!response.ok) {
           throw new Error(
@@ -198,88 +441,226 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
           );
         }
 
-        const data: GraphResponse = await response.json();
+        const data: GraphResponse =
+          await response.json();
 
-        dataRef.current = data.nodes;
+        dataRef.current =
+          data.nodes;
 
-        const graph = new Graph({
-          type: 'directed',
-          multi: false,
-        });
+        const categoryMap =
+          new Map<
+            string,
+            TaxonomyItem
+          >();
 
-        const total = Math.max(data.nodes.length, 1);
+        const interestMap =
+          new Map<
+            string,
+            TaxonomyItem
+          >();
 
-        data.nodes.forEach((node, index) => {
-          const angle = (index / total) * Math.PI * 2;
+        data.nodes.forEach(
+          (node) => {
+            node.categories.forEach(
+              (category) =>
+                categoryMap.set(
+                  category.id,
+                  category,
+                ),
+            );
 
-          graph.addNode(node.id, {
-            label: node.label,
-            x: Math.cos(angle),
-            y: Math.sin(angle),
-            size: 6 + node.importance * 2,
-            importance: node.importance,
+            node.interests.forEach(
+              (interest) =>
+                interestMap.set(
+                  interest.id,
+                  interest,
+                ),
+            );
+          },
+        );
+
+        setCategories(
+          [...categoryMap.values()].sort(
+            (a, b) =>
+              a.name.localeCompare(
+                b.name,
+              ),
+          ),
+        );
+
+        setInterests(
+          [...interestMap.values()].sort(
+            (a, b) =>
+              a.name.localeCompare(
+                b.name,
+              ),
+          ),
+        );
+
+        const graph =
+          new Graph({
+            type: 'directed',
+            multi: false,
           });
-        });
 
-        data.edges.forEach((edge) => {
-          if (
-            graph.hasNode(edge.source) &&
-            graph.hasNode(edge.target)
-          ) {
-            graph.addDirectedEdgeWithKey(
-              edge.id,
-              edge.source,
-              edge.target,
+        const total =
+          Math.max(
+            data.nodes.length,
+            1,
+          );
+
+        data.nodes.forEach(
+          (node, index) => {
+            const angle =
+              (index / total) *
+              Math.PI *
+              2;
+
+            graph.addNode(
+              node.id,
               {
-                label: edge.type ?? undefined,
-                size: Math.max(1, edge.strength),
-                weight: Math.max(1, edge.strength),
+                label:
+                  node.label,
+                x: Math.cos(
+                  angle,
+                ),
+                y: Math.sin(
+                  angle,
+                ),
+                size:
+                  6 +
+                  node.importance *
+                    2,
+                color:
+                  categoryColor(
+                    primaryCategory(
+                      node,
+                    ),
+                  ),
+                importance:
+                  node.importance,
               },
             );
-          }
-        });
+          },
+        );
+
+        data.edges.forEach(
+          (edge) => {
+            if (
+              graph.hasNode(
+                edge.source,
+              ) &&
+              graph.hasNode(
+                edge.target,
+              )
+            ) {
+              graph.addDirectedEdgeWithKey(
+                edge.id,
+                edge.source,
+                edge.target,
+                {
+                  label:
+                    edge.type ??
+                    undefined,
+                  size:
+                    Math.max(
+                      1,
+                      edge.strength,
+                    ),
+                  weight:
+                    Math.max(
+                      1,
+                      edge.strength,
+                    ),
+                },
+              );
+            }
+          },
+        );
 
         if (graph.order > 1) {
-          forceAtlas2.assign(graph, {
-            iterations: 100,
-            settings: forceAtlas2.inferSettings(graph),
-          });
+          forceAtlas2.assign(
+            graph,
+            {
+              iterations: 100,
+              settings:
+                forceAtlas2.inferSettings(
+                  graph,
+                ),
+            },
+          );
         }
 
-        graphRef.current = graph;
+        graphRef.current =
+          graph;
 
-        if (!containerRef.current) {
+        if (
+          !containerRef.current
+        ) {
           return;
         }
 
-        renderer = new Sigma(graph, containerRef.current, {
-          renderEdgeLabels: true,
-          zIndex: true,
-        });
+        renderer = new Sigma(
+          graph,
+          containerRef.current,
+          {
+            renderEdgeLabels:
+              true,
+            zIndex: true,
+          },
+        );
 
-        sigmaRef.current = renderer;
+        sigmaRef.current =
+          renderer;
 
-        renderer.on('clickNode', ({ node }) => {
-          selectNode(node);
-        });
+        renderer.on(
+          'clickNode',
+          ({ node }) => {
+            selectNode(node);
+          },
+        );
 
-        renderer.on('clickStage', () => {
-          selectNode(null);
-        });
+        renderer.on(
+          'clickStage',
+          () => {
+            selectNode(null);
+          },
+        );
 
-        renderer.on('enterNode', () => {
-          if (containerRef.current) {
-            containerRef.current.style.cursor = 'pointer';
-          }
-        });
+        renderer.on(
+          'enterNode',
+          () => {
+            if (
+              containerRef.current
+            ) {
+              containerRef.current.style.cursor =
+                'pointer';
+            }
+          },
+        );
 
-        renderer.on('leaveNode', () => {
-          if (containerRef.current) {
-            containerRef.current.style.cursor = 'default';
-          }
-        });
+        renderer.on(
+          'leaveNode',
+          () => {
+            if (
+              containerRef.current
+            ) {
+              containerRef.current.style.cursor =
+                'default';
+            }
+          },
+        );
 
         setMeta(data.meta);
+        setError(null);
+
+        setTimeout(
+          () =>
+            applyGraphView(
+              null,
+            ),
+          0,
+        );
       } catch (err) {
         setError(
           err instanceof Error
@@ -293,10 +674,20 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
 
     return () => {
       renderer?.kill();
-      sigmaRef.current = null;
-      graphRef.current = null;
+
+      sigmaRef.current =
+        null;
+
+      graphRef.current =
+        null;
     };
-  }, [refreshKey, reloadKey]);
+  }, [
+    refreshKey,
+    reloadKey,
+    categoryFilter,
+    interestFilter,
+    minImportance,
+  ]);
 
   return (
     <main
@@ -311,31 +702,148 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
         style={{
           flex: 1,
           minWidth: 0,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <header
           style={{
+            flexShrink: 0,
             display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
-            gap: '20px',
+            gap: '12px',
             padding: '12px 18px',
-            borderBottom: '1px solid #ddd',
+            borderBottom:
+              '1px solid #ddd',
           }}
         >
-          <strong>Personal Network Graph</strong>
+          <strong>
+            Personal Network Graph
+          </strong>
 
-          <span>People: {meta.nodeCount}</span>
-          <span>Relationships: {meta.edgeCount}</span>
+          <span>
+            People: {meta.nodeCount}
+          </span>
+
+          <span>
+            Visible: {visibleCount}
+          </span>
+
+          <span>
+            Relationships:{' '}
+            {meta.edgeCount}
+          </span>
 
           <button
             type="button"
-            onClick={() => setReloadKey((value) => value + 1)}
+            onClick={() =>
+              setReloadKey(
+                (value) =>
+                  value + 1,
+              )
+            }
           >
             Refresh
           </button>
 
+          <select
+            value={categoryFilter}
+            onChange={(event) => {
+              setSelectedNode(null);
+              setCategoryFilter(
+                event.target.value,
+              );
+            }}
+          >
+            <option value="">
+              All categories
+            </option>
+
+            {categories.map(
+              (category) => (
+                <option
+                  key={category.id}
+                  value={category.id}
+                >
+                  {category.name}
+                </option>
+              ),
+            )}
+          </select>
+
+          <select
+            value={interestFilter}
+            onChange={(event) => {
+              setSelectedNode(null);
+              setInterestFilter(
+                event.target.value,
+              );
+            }}
+          >
+            <option value="">
+              All interests
+            </option>
+
+            {interests.map(
+              (interest) => (
+                <option
+                  key={interest.id}
+                  value={interest.id}
+                >
+                  {interest.name}
+                </option>
+              ),
+            )}
+          </select>
+
+          <label>
+            Importance ≥{' '}
+            <select
+              value={minImportance}
+              onChange={(event) => {
+                setSelectedNode(
+                  null,
+                );
+
+                setMinImportance(
+                  Number(
+                    event.target
+                      .value,
+                  ),
+                );
+              }}
+            >
+              <option value={1}>
+                1
+              </option>
+              <option value={2}>
+                2
+              </option>
+              <option value={3}>
+                3
+              </option>
+              <option value={4}>
+                4
+              </option>
+              <option value={5}>
+                5
+              </option>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            onClick={resetFilters}
+          >
+            Reset filters
+          </button>
+
           <form
-            onSubmit={handleSearchSubmit}
+            onSubmit={
+              handleSearchSubmit
+            }
             style={{
               marginLeft: 'auto',
               display: 'flex',
@@ -345,40 +853,106 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value,
+                )
+              }
               placeholder="Search person..."
               style={{
-                width: '240px',
-                padding: '8px 10px',
+                width: '220px',
+                padding: '7px',
               }}
             />
 
             <button type="submit">
               Find
             </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSearch('');
-                selectNode(null);
-              }}
-            >
-              Reset
-            </button>
           </form>
         </header>
 
+        <div
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '14px',
+            padding: '8px 18px',
+            borderBottom:
+              '1px solid #eee',
+            fontSize: '13px',
+          }}
+        >
+          <strong>
+            Category legend:
+          </strong>
+
+          <span>
+            <span
+              style={{
+                display:
+                  'inline-block',
+                width: '10px',
+                height: '10px',
+                borderRadius:
+                  '50%',
+                background:
+                  '#64748b',
+                marginRight:
+                  '5px',
+              }}
+            />
+            No category
+          </span>
+
+          {categories.map(
+            (category) => (
+              <span
+                key={category.id}
+              >
+                <span
+                  style={{
+                    display:
+                      'inline-block',
+                    width: '10px',
+                    height:
+                      '10px',
+                    borderRadius:
+                      '50%',
+                    background:
+                      categoryColor(
+                        category.name,
+                      ),
+                    marginRight:
+                      '5px',
+                  }}
+                />
+                {category.name}
+              </span>
+            ),
+          )}
+
+          <span>
+            Node size =
+            importance
+          </span>
+        </div>
+
         {error ? (
-          <div style={{ padding: '20px' }}>
+          <div
+            style={{
+              padding: '20px',
+            }}
+          >
             {error}
           </div>
         ) : (
           <div
             ref={containerRef}
             style={{
+              flex: 1,
+              minHeight: 0,
               width: '100%',
-              height: 'calc(100% - 58px)',
             }}
           />
         )}
@@ -388,47 +962,85 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
         <aside
           style={{
             width: '320px',
+            flexShrink: 0,
             padding: '24px',
-            borderLeft: '1px solid #ddd',
+            borderLeft:
+              '1px solid #ddd',
             overflowY: 'auto',
           }}
         >
-          <h2>{selectedNode.label}</h2>
+          <h2>
+            {selectedNode.label}
+          </h2>
 
           {selectedNode.nickname && (
-            <p>Nickname: {selectedNode.nickname}</p>
+            <p>
+              Nickname:{' '}
+              {
+                selectedNode.nickname
+              }
+            </p>
           )}
 
           {selectedNode.company && (
-            <p>Company: {selectedNode.company}</p>
+            <p>
+              Company:{' '}
+              {
+                selectedNode.company
+              }
+            </p>
           )}
 
           {selectedNode.position && (
-            <p>Position: {selectedNode.position}</p>
+            <p>
+              Position:{' '}
+              {
+                selectedNode.position
+              }
+            </p>
           )}
 
-          {(selectedNode.city || selectedNode.country) && (
+          {(
+            selectedNode.city ||
+            selectedNode.country
+          ) && (
             <p>
               Location:{' '}
-              {[selectedNode.city, selectedNode.country]
+              {[
+                selectedNode.city,
+                selectedNode.country,
+              ]
                 .filter(Boolean)
                 .join(', ')}
             </p>
           )}
 
           <p>
-            Importance: {selectedNode.importance}/5
+            Importance:{' '}
+            {
+              selectedNode.importance
+            }
+            /5
           </p>
 
           <h3>Categories</h3>
 
-          {selectedNode.categories.length ? (
+          {selectedNode
+            .categories.length ? (
             <ul>
-              {selectedNode.categories.map((category) => (
-                <li key={category.id}>
-                  {category.name}
-                </li>
-              ))}
+              {selectedNode.categories.map(
+                (category) => (
+                  <li
+                    key={
+                      category.id
+                    }
+                  >
+                    {
+                      category.name
+                    }
+                  </li>
+                ),
+              )}
             </ul>
           ) : (
             <p>None</p>
@@ -436,13 +1048,22 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
 
           <h3>Interests</h3>
 
-          {selectedNode.interests.length ? (
+          {selectedNode
+            .interests.length ? (
             <ul>
-              {selectedNode.interests.map((interest) => (
-                <li key={interest.id}>
-                  {interest.name}
-                </li>
-              ))}
+              {selectedNode.interests.map(
+                (interest) => (
+                  <li
+                    key={
+                      interest.id
+                    }
+                  >
+                    {
+                      interest.name
+                    }
+                  </li>
+                ),
+              )}
             </ul>
           ) : (
             <p>None</p>
@@ -450,7 +1071,9 @@ export function NetworkGraph({ refreshKey }: NetworkGraphProps) {
 
           <button
             type="button"
-            onClick={() => selectNode(null)}
+            onClick={() =>
+              selectNode(null)
+            }
           >
             Close
           </button>
