@@ -43,6 +43,9 @@ type GraphResponse = {
 
 export function NetworkGraph() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const sigmaRef = useRef<Sigma | null>(null);
+  const graphRef = useRef<Graph | null>(null);
+  const dataRef = useRef<GraphNode[]>([]);
 
   const [meta, setMeta] = useState({
     nodeCount: 0,
@@ -52,7 +55,130 @@ export function NetworkGraph() {
   const [selectedNode, setSelectedNode] =
     useState<GraphNode | null>(null);
 
+  const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  function selectNode(nodeId: string | null) {
+    const renderer = sigmaRef.current;
+    const graph = graphRef.current;
+
+    if (!renderer || !graph) {
+      return;
+    }
+
+    if (!nodeId) {
+      setSelectedNode(null);
+
+      renderer.setSetting('nodeReducer', null);
+      renderer.setSetting('edgeReducer', null);
+      renderer.refresh();
+
+      return;
+    }
+
+    const person =
+      dataRef.current.find((item) => item.id === nodeId) ?? null;
+
+    setSelectedNode(person);
+
+    const neighbors = new Set(graph.neighbors(nodeId));
+
+    renderer.setSetting('nodeReducer', (node, data) => {
+      if (node === nodeId) {
+        return {
+          ...data,
+          highlighted: true,
+          size: Math.max(data.size ?? 8, 14),
+          zIndex: 2,
+        };
+      }
+
+      if (neighbors.has(node)) {
+        return {
+          ...data,
+          highlighted: true,
+          zIndex: 1,
+        };
+      }
+
+      return {
+        ...data,
+        color: '#d6d6d6',
+        label: '',
+        zIndex: 0,
+      };
+    });
+
+    renderer.setSetting('edgeReducer', (edge, data) => {
+      const source = graph.source(edge);
+      const target = graph.target(edge);
+
+      if (
+        source === nodeId ||
+        target === nodeId
+      ) {
+        return {
+          ...data,
+          hidden: false,
+          size: Math.max(data.size ?? 1, 2),
+          zIndex: 1,
+        };
+      }
+
+      return {
+        ...data,
+        hidden: true,
+      };
+    });
+
+    renderer.refresh();
+
+    const position = renderer.getNodeDisplayData(nodeId);
+
+    if (position) {
+      renderer.getCamera().animate(
+        {
+          x: position.x,
+          y: position.y,
+          ratio: 0.35,
+        },
+        {
+          duration: 500,
+        },
+      );
+    }
+  }
+
+  function handleSearchSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      selectNode(null);
+      return;
+    }
+
+    const person = dataRef.current.find((node) => {
+      const haystack = [
+        node.label,
+        node.nickname,
+        node.company,
+        node.position,
+        node.city,
+        node.country,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+
+    if (person) {
+      selectNode(person.id);
+    }
+  }
 
   useEffect(() => {
     let renderer: Sigma | null = null;
@@ -68,6 +194,8 @@ export function NetworkGraph() {
         }
 
         const data: GraphResponse = await response.json();
+
+        dataRef.current = data.nodes;
 
         const graph = new Graph({
           type: 'directed',
@@ -113,23 +241,25 @@ export function NetworkGraph() {
           });
         }
 
+        graphRef.current = graph;
+
         if (!containerRef.current) {
           return;
         }
 
         renderer = new Sigma(graph, containerRef.current, {
           renderEdgeLabels: true,
+          zIndex: true,
         });
 
-        renderer.on('clickNode', ({ node }) => {
-          const person =
-            data.nodes.find((item) => item.id === node) ?? null;
+        sigmaRef.current = renderer;
 
-          setSelectedNode(person);
+        renderer.on('clickNode', ({ node }) => {
+          selectNode(node);
         });
 
         renderer.on('clickStage', () => {
-          setSelectedNode(null);
+          selectNode(null);
         });
 
         renderer.on('enterNode', () => {
@@ -158,6 +288,8 @@ export function NetworkGraph() {
 
     return () => {
       renderer?.kill();
+      sigmaRef.current = null;
+      graphRef.current = null;
     };
   }, []);
 
@@ -179,24 +311,62 @@ export function NetworkGraph() {
         <header
           style={{
             display: 'flex',
-            gap: '24px',
-            padding: '14px 18px',
+            alignItems: 'center',
+            gap: '20px',
+            padding: '12px 18px',
             borderBottom: '1px solid #ddd',
           }}
         >
           <strong>Personal Network Graph</strong>
+
           <span>People: {meta.nodeCount}</span>
           <span>Relationships: {meta.edgeCount}</span>
+
+          <form
+            onSubmit={handleSearchSubmit}
+            style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              gap: '8px',
+            }}
+          >
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search person..."
+              style={{
+                width: '240px',
+                padding: '8px 10px',
+              }}
+            />
+
+            <button type="submit">
+              Find
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                selectNode(null);
+              }}
+            >
+              Reset
+            </button>
+          </form>
         </header>
 
         {error ? (
-          <div style={{ padding: '20px' }}>{error}</div>
+          <div style={{ padding: '20px' }}>
+            {error}
+          </div>
         ) : (
           <div
             ref={containerRef}
             style={{
               width: '100%',
-              height: 'calc(100vh - 50px)',
+              height: 'calc(100vh - 58px)',
             }}
           />
         )}
@@ -234,14 +404,18 @@ export function NetworkGraph() {
             </p>
           )}
 
-          <p>Importance: {selectedNode.importance}/5</p>
+          <p>
+            Importance: {selectedNode.importance}/5
+          </p>
 
           <h3>Categories</h3>
 
-          {selectedNode.categories.length > 0 ? (
+          {selectedNode.categories.length ? (
             <ul>
               {selectedNode.categories.map((category) => (
-                <li key={category.id}>{category.name}</li>
+                <li key={category.id}>
+                  {category.name}
+                </li>
               ))}
             </ul>
           ) : (
@@ -250,10 +424,12 @@ export function NetworkGraph() {
 
           <h3>Interests</h3>
 
-          {selectedNode.interests.length > 0 ? (
+          {selectedNode.interests.length ? (
             <ul>
               {selectedNode.interests.map((interest) => (
-                <li key={interest.id}>{interest.name}</li>
+                <li key={interest.id}>
+                  {interest.name}
+                </li>
               ))}
             </ul>
           ) : (
@@ -262,7 +438,7 @@ export function NetworkGraph() {
 
           <button
             type="button"
-            onClick={() => setSelectedNode(null)}
+            onClick={() => selectNode(null)}
           >
             Close
           </button>
