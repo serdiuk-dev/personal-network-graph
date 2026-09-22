@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { PersonTaxonomyManager } from './PersonTaxonomyManager';
 
 type Person = {
   id: string;
@@ -49,6 +50,7 @@ export function PeopleManager() {
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<PersonForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [taxonomyPersonId, setTaxonomyPersonId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -458,12 +460,28 @@ export function PeopleManager() {
                     >
                       Delete
                     </button>
+
+                    {' '}
+
+                    <button
+                      type="button"
+                      onClick={() => setTaxonomyPersonId(person.id)}
+                    >
+                      Categories / Interests
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {taxonomyPersonId && (
+        <PersonTaxonomyManager
+          personId={taxonomyPersonId}
+          onClose={() => setTaxonomyPersonId(null)}
+        />
       )}
     </main>
   );
