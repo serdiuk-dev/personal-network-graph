@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import Graph from 'graphology';
+import { UndirectedGraph } from 'graphology';
 
 import betweennessCentrality from 'graphology-metrics/centrality/betweenness';
 import { weightedDegree } from 'graphology-metrics/node/weighted-degree';
@@ -35,9 +35,7 @@ export class AnalyticsService {
         }),
       ]);
 
-    const graph = new Graph({
-      type: 'undirected',
-      multi: false,
+    const graph = new UndirectedGraph({
       allowSelfLoops: false,
     });
 
