@@ -2,11 +2,11 @@ FROM node:24-alpine AS build
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
 
-COPY index.html vite.config.ts tsconfig.json ./
-COPY src ./src
+RUN npm ci
+
+COPY . .
 
 RUN npm run build
 
