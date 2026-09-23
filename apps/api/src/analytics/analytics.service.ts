@@ -11,7 +11,9 @@ import { PrismaService } from '../prisma.service';
 type Role =
   | 'connector'
   | 'bridge'
-  | 'hub';
+  | 'hub'
+  | 'clusterHub'
+  | 'interClusterBridge';
 
 @Injectable()
 export class AnalyticsService {
@@ -491,6 +493,38 @@ export class AnalyticsService {
       },
     );
 
+    const communitySizes =
+      new Map<number, number>();
+
+    const maxInternalWeightedDegreeByCommunity =
+      new Map<number, number>();
+
+    rawMetrics.forEach((item) => {
+      communitySizes.set(
+        item.communityId,
+        (
+          communitySizes.get(
+            item.communityId,
+          ) ?? 0
+        ) + 1,
+      );
+
+      const internalWeightedDegree =
+        clusterMetricAccumulators.get(
+          item.id,
+        )?.internalWeightedDegree ?? 0;
+
+      maxInternalWeightedDegreeByCommunity.set(
+        item.communityId,
+        Math.max(
+          maxInternalWeightedDegreeByCommunity.get(
+            item.communityId,
+          ) ?? 0,
+          internalWeightedDegree,
+        ),
+      );
+    });
+
     const maxDegree =
       Math.max(
         0,
@@ -628,6 +662,43 @@ export class AnalyticsService {
 
             explanations.push(
               'High combined relationship strength.',
+            );
+          }
+
+          const communitySize =
+            communitySizes.get(
+              item.communityId,
+            ) ?? 0;
+
+          const maxInternalWeightedDegree =
+            maxInternalWeightedDegreeByCommunity.get(
+              item.communityId,
+            ) ?? 0;
+
+          if (
+            communitySize >= 3 &&
+            clusterMetric.internalWeightedDegree > 0 &&
+            clusterMetric.internalWeightedDegree ===
+              maxInternalWeightedDegree
+          ) {
+            roles.push(
+              'clusterHub',
+            );
+
+            explanations.push(
+              'Has the highest internal weighted degree inside the Louvain community.',
+            );
+          }
+
+          if (
+            clusterMetric.externalDegree > 0
+          ) {
+            roles.push(
+              'interClusterBridge',
+            );
+
+            explanations.push(
+              'Has at least one direct relationship crossing a Louvain community boundary.',
             );
           }
 
