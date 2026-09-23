@@ -270,6 +270,227 @@ export class AnalyticsService {
         };
       });
 
+    /*
+     * Cluster analytics.
+     *
+     * internalDegree / internalWeightedDegree:
+     * connections inside the person's Louvain community.
+     *
+     * externalDegree / externalWeightedDegree:
+     * connections crossing community boundaries.
+     *
+     * withinCommunityZScore:
+     * z-score of internal degree inside the person's own community.
+     *
+     * participationCoefficient:
+     * weighted participation across communities:
+     * 1 - sum((strengthToCommunity / totalStrength)^2)
+     */
+    const clusterMetricAccumulators =
+      new Map<
+        string,
+        {
+          internalDegree: number;
+          internalWeightedDegree: number;
+          externalDegree: number;
+          externalWeightedDegree: number;
+          externalCommunities: Set<number>;
+          weightByCommunity: Map<
+            number,
+            number
+          >;
+        }
+      >();
+
+    people.forEach((person) => {
+      clusterMetricAccumulators.set(
+        person.id,
+        {
+          internalDegree: 0,
+          internalWeightedDegree: 0,
+          externalDegree: 0,
+          externalWeightedDegree: 0,
+          externalCommunities:
+            new Set<number>(),
+          weightByCommunity:
+            new Map<number, number>(),
+        },
+      );
+    });
+
+    analyticalEdges.forEach(
+      (edge) => {
+        const sourceCommunity =
+          communityPartition[
+            edge.source
+          ];
+
+        const targetCommunity =
+          communityPartition[
+            edge.target
+          ];
+
+        const sourceMetrics =
+          clusterMetricAccumulators.get(
+            edge.source,
+          );
+
+        const targetMetrics =
+          clusterMetricAccumulators.get(
+            edge.target,
+          );
+
+        if (
+          sourceCommunity ===
+            undefined ||
+          targetCommunity ===
+            undefined ||
+          !sourceMetrics ||
+          !targetMetrics
+        ) {
+          return;
+        }
+
+        const strength =
+          Math.max(
+            1,
+            Number(
+              edge.strength ??
+                1,
+            ),
+          );
+
+        sourceMetrics.weightByCommunity.set(
+          targetCommunity,
+          (
+            sourceMetrics
+              .weightByCommunity.get(
+                targetCommunity,
+              ) ?? 0
+          ) + strength,
+        );
+
+        targetMetrics.weightByCommunity.set(
+          sourceCommunity,
+          (
+            targetMetrics
+              .weightByCommunity.get(
+                sourceCommunity,
+              ) ?? 0
+          ) + strength,
+        );
+
+        if (
+          sourceCommunity ===
+          targetCommunity
+        ) {
+          sourceMetrics.internalDegree +=
+            1;
+
+          targetMetrics.internalDegree +=
+            1;
+
+          sourceMetrics.internalWeightedDegree +=
+            strength;
+
+          targetMetrics.internalWeightedDegree +=
+            strength;
+
+          return;
+        }
+
+        sourceMetrics.externalDegree +=
+          1;
+
+        targetMetrics.externalDegree +=
+          1;
+
+        sourceMetrics.externalWeightedDegree +=
+          strength;
+
+        targetMetrics.externalWeightedDegree +=
+          strength;
+
+        sourceMetrics.externalCommunities.add(
+          targetCommunity,
+        );
+
+        targetMetrics.externalCommunities.add(
+          sourceCommunity,
+        );
+      },
+    );
+
+    const internalDegreesByCommunity =
+      new Map<
+        number,
+        number[]
+      >();
+
+    rawMetrics.forEach((item) => {
+      const values =
+        internalDegreesByCommunity.get(
+          item.communityId,
+        ) ?? [];
+
+      values.push(
+        clusterMetricAccumulators.get(
+          item.id,
+        )?.internalDegree ?? 0,
+      );
+
+      internalDegreesByCommunity.set(
+        item.communityId,
+        values,
+      );
+    });
+
+    const communityInternalDegreeStats =
+      new Map<
+        number,
+        {
+          mean: number;
+          stdDev: number;
+        }
+      >();
+
+    internalDegreesByCommunity.forEach(
+      (values, communityId) => {
+        const mean =
+          values.length > 0
+            ? values.reduce(
+                (sum, value) =>
+                  sum + value,
+                0,
+              ) / values.length
+            : 0;
+
+        const variance =
+          values.length > 0
+            ? values.reduce(
+                (sum, value) =>
+                  sum +
+                  Math.pow(
+                    value - mean,
+                    2,
+                  ),
+                0,
+              ) / values.length
+            : 0;
+
+        communityInternalDegreeStats.set(
+          communityId,
+          {
+            mean,
+            stdDev:
+              Math.sqrt(
+                variance,
+              ),
+          },
+        );
+      },
+    );
+
     const maxDegree =
       Math.max(
         0,
@@ -305,6 +526,52 @@ export class AnalyticsService {
 
           const explanations: string[] =
             [];
+
+          const clusterMetric =
+            clusterMetricAccumulators.get(
+              item.id,
+            )!;
+
+          const communityStats =
+            communityInternalDegreeStats.get(
+              item.communityId,
+            );
+
+          const withinCommunityZScore =
+            communityStats &&
+            communityStats.stdDev > 0
+              ? (
+                  clusterMetric.internalDegree -
+                  communityStats.mean
+                ) /
+                communityStats.stdDev
+              : 0;
+
+          const totalClusterWeight =
+            clusterMetric.internalWeightedDegree +
+            clusterMetric.externalWeightedDegree;
+
+          const participationCoefficient =
+            totalClusterWeight > 0
+              ? 1 -
+                Array.from(
+                  clusterMetric
+                    .weightByCommunity
+                    .values(),
+                ).reduce(
+                  (
+                    sum,
+                    communityWeight,
+                  ) =>
+                    sum +
+                    Math.pow(
+                      communityWeight /
+                        totalClusterWeight,
+                      2,
+                    ),
+                  0,
+                )
+              : 0;
 
           const degreeRatio =
             maxDegree > 0
@@ -370,6 +637,37 @@ export class AnalyticsService {
 
             communityId:
               item.communityId,
+
+            clusterMetrics: {
+              internalDegree:
+                clusterMetric.internalDegree,
+
+              internalWeightedDegree:
+                this.round(
+                  clusterMetric.internalWeightedDegree,
+                ),
+
+              externalDegree:
+                clusterMetric.externalDegree,
+
+              externalWeightedDegree:
+                this.round(
+                  clusterMetric.externalWeightedDegree,
+                ),
+
+              externalCommunityCount:
+                clusterMetric.externalCommunities.size,
+
+              withinCommunityZScore:
+                this.round(
+                  withinCommunityZScore,
+                ),
+
+              participationCoefficient:
+                this.round(
+                  participationCoefficient,
+                ),
+            },
 
             metrics: {
               degree:
