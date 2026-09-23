@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { ContactChannelsManager } from './ContactChannelsManager';
 import { PersonTaxonomyManager } from './PersonTaxonomyManager';
 
 type Person = {
@@ -55,6 +56,7 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
   const [form, setForm] = useState<PersonForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [taxonomyPersonId, setTaxonomyPersonId] = useState<string | null>(null);
+  const [contactChannelsPersonId, setContactChannelsPersonId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -471,6 +473,17 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
 
                     <button
                       type="button"
+                      onClick={() =>
+                        setContactChannelsPersonId(person.id)
+                      }
+                    >
+                      Contact Channels
+                    </button>
+
+                    {' '}
+
+                    <button
+                      type="button"
                       onClick={() => setTaxonomyPersonId(person.id)}
                     >
                       Categories / Interests
@@ -481,6 +494,15 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {contactChannelsPersonId && (
+        <ContactChannelsManager
+          personId={contactChannelsPersonId}
+          onClose={() =>
+            setContactChannelsPersonId(null)
+          }
+        />
       )}
 
       {taxonomyPersonId && (

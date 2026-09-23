@@ -23,8 +23,9 @@ model Person {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  categories PersonCategory[]
-  interests  PersonInterest[]
+  categories      PersonCategory[]
+  interests       PersonInterest[]
+  contactChannels ContactChannel[]
 
   outgoingRelationships Relationship[] @relation("RelationshipFrom")
   incomingRelationships Relationship[] @relation("RelationshipTo")
@@ -80,4 +81,38 @@ model PersonInterest {
   interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
 
   @@id([personId, interestId])
+}
+
+
+enum ContactPlatform {
+  TELEGRAM
+  LINKEDIN
+  INSTAGRAM
+  FACEBOOK
+  MESSENGER
+  EMAIL
+  WHATSAPP
+  SIGNAL
+  VIBER
+  PHONE
+  OTHER
+}
+
+model ContactChannel {
+  id          String          @id @default(uuid())
+  personId    String
+  platform    ContactPlatform
+  handle      String?
+  address     String?
+  profileUrl  String?
+  isPreferred Boolean         @default(false)
+  isActive    Boolean         @default(true)
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([platform])
 }
