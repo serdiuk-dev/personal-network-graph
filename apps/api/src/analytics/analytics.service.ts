@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UndirectedGraph } from 'graphology';
+const louvain: typeof import('graphology-communities-louvain').default =
+  require('graphology-communities-louvain');
 
 import betweennessCentrality from 'graphology-metrics/centrality/betweenness';
 import { weightedDegree } from 'graphology-metrics/node/weighted-degree';
@@ -128,6 +130,61 @@ export class AnalyticsService {
       },
     );
 
+    /*
+     * Community detection uses weighted Louvain.
+     *
+     * Relationship strength is used as the edge weight.
+     * randomWalk=false keeps results deterministic for an unchanged graph.
+     *
+     * A graph without edges is handled explicitly because every isolated
+     * person forms a standalone community and modularity is defined here as 0.
+     */
+    const communityResult =
+      graph.order === 0
+        ? {
+            communities: {} as Record<
+              string,
+              number
+            >,
+            count: 0,
+            modularity: 0,
+          }
+        : graph.size === 0
+          ? {
+              communities:
+                Object.fromEntries(
+                  graph
+                    .nodes()
+                    .map(
+                      (
+                        id,
+                        index,
+                      ) => [
+                        id,
+                        index,
+                      ],
+                    ),
+                ) as Record<
+                  string,
+                  number
+                >,
+              count:
+                graph.order,
+              modularity: 0,
+            }
+          : louvain.detailed(
+              graph,
+              {
+                getEdgeWeight:
+                  'strength',
+                randomWalk:
+                  false,
+              },
+            );
+
+    const communityPartition =
+      communityResult.communities;
+
     const betweennessScores =
       graph.order > 2
         ? betweennessCentrality(
@@ -205,6 +262,11 @@ export class AnalyticsService {
           weightedDegree:
             strengthDegree,
           betweenness,
+
+          communityId:
+            communityPartition[
+              person.id
+            ] ?? 0,
         };
       });
 
@@ -306,6 +368,9 @@ export class AnalyticsService {
             id: item.id,
             label: item.label,
 
+            communityId:
+              item.communityId,
+
             metrics: {
               degree:
                 item.degree,
@@ -336,6 +401,53 @@ export class AnalyticsService {
             (graph.order - 1))
         : 0;
 
+    const communityMembers =
+      new Map<
+        number,
+        Array<{
+          id: string;
+          label: string;
+        }>
+      >();
+
+    nodes.forEach((node) => {
+      const members =
+        communityMembers.get(
+          node.communityId,
+        ) ?? [];
+
+      members.push({
+        id: node.id,
+        label: node.label,
+      });
+
+      communityMembers.set(
+        node.communityId,
+        members,
+      );
+    });
+
+    const communities =
+      Array.from(
+        communityMembers.entries(),
+      )
+        .map(
+          ([
+            id,
+            members,
+          ]) => ({
+            id,
+            size:
+              members.length,
+            members,
+          }),
+        )
+        .sort(
+          (a, b) =>
+            b.size - a.size ||
+            a.id - b.id,
+        );
+
     return {
       meta: {
         nodeCount:
@@ -349,6 +461,17 @@ export class AnalyticsService {
             density,
           ),
 
+        communityCount:
+          communityResult.count,
+
+        modularity:
+          this.round(
+            communityResult.modularity,
+          ),
+
+        communityAlgorithm:
+          'louvain',
+
         analyticalModel:
           'undirected',
 
@@ -357,6 +480,8 @@ export class AnalyticsService {
       },
 
       nodes,
+
+      communities,
 
       rankings: {
         connectors: [
