@@ -47,6 +47,20 @@ type GraphResponse = {
   };
 };
 
+type AnalyticsNode = {
+  id: string;
+  communityId: number;
+  roles: string[];
+};
+
+type AnalyticsResponse = {
+  nodes: AnalyticsNode[];
+};
+
+type ColorMode =
+  | 'category'
+  | 'community';
+
 type NetworkGraphProps = {
   refreshKey: number;
 };
@@ -63,6 +77,34 @@ const CATEGORY_COLORS = [
   '#c026d3',
   '#0f766e',
 ];
+
+const COMMUNITY_COLORS = [
+  '#2563eb',
+  '#16a34a',
+  '#dc2626',
+  '#9333ea',
+  '#ea580c',
+  '#0891b2',
+  '#be123c',
+  '#4f46e5',
+  '#65a30d',
+  '#c026d3',
+  '#0f766e',
+  '#ca8a04',
+];
+
+function communityColor(
+  communityId: number | undefined,
+) {
+  if (communityId === undefined) {
+    return '#64748b';
+  }
+
+  return COMMUNITY_COLORS[
+    Math.abs(communityId) %
+      COMMUNITY_COLORS.length
+  ];
+}
 
 function categoryColor(name: string | null) {
   if (!name) {
@@ -106,6 +148,11 @@ export function NetworkGraph({
   const dataRef =
     useRef<GraphNode[]>([]);
 
+  const analyticsRef =
+    useRef<
+      Map<string, AnalyticsNode>
+    >(new Map());
+
   const [meta, setMeta] = useState({
     nodeCount: 0,
     edgeCount: 0,
@@ -137,6 +184,12 @@ export function NetworkGraph({
 
   const [reloadKey, setReloadKey] =
     useState(0);
+
+  const [colorMode, setColorMode] =
+    useState<ColorMode>('category');
+
+  const [communityIds, setCommunityIds] =
+    useState<number[]>([]);
 
   const [error, setError] =
     useState<string | null>(null);
@@ -211,18 +264,68 @@ export function NetworkGraph({
           };
         }
 
-        const color = categoryColor(
-          primaryCategory(person),
-        );
+        const analytics =
+          analyticsRef.current.get(
+            node,
+          );
+
+        const color =
+          colorMode === 'community'
+            ? communityColor(
+                analytics?.communityId,
+              )
+            : categoryColor(
+                primaryCategory(
+                  person,
+                ),
+              );
+
+        const isClusterHub =
+          analytics?.roles.includes(
+            'clusterHub',
+          ) ?? false;
+
+        const isInterClusterBridge =
+          analytics?.roles.includes(
+            'interClusterBridge',
+          ) ?? false;
+
+        const specialRole =
+          colorMode === 'community' &&
+          (
+            isClusterHub ||
+            isInterClusterBridge
+          );
+
+        const roleSizeBonus =
+          colorMode === 'community'
+            ? (
+                (isClusterHub ? 4 : 0) +
+                (
+                  isInterClusterBridge
+                    ? 2
+                    : 0
+                )
+              )
+            : 0;
+
+        const nodeSize =
+          6 +
+          person.importance * 2 +
+          roleSizeBonus;
 
         if (!selectedId) {
           return {
             ...data,
             hidden: false,
             color,
-            size:
-              6 +
-              person.importance * 2,
+            size: nodeSize,
+            highlighted:
+              specialRole,
+            zIndex:
+              specialRole
+                ? 2
+                : 0,
           };
         }
 
@@ -234,11 +337,9 @@ export function NetworkGraph({
             highlighted: true,
             size: Math.max(
               16,
-              6 +
-                person.importance *
-                  2,
+              nodeSize,
             ),
-            zIndex: 2,
+            zIndex: 3,
           };
         }
 
@@ -248,7 +349,11 @@ export function NetworkGraph({
             hidden: false,
             color,
             highlighted: true,
-            zIndex: 1,
+            size: nodeSize,
+            zIndex:
+              specialRole
+                ? 2
+                : 1,
           };
         }
 
@@ -430,10 +535,15 @@ export function NetworkGraph({
 
     async function loadGraph() {
       try {
-        const response =
-          await fetch(
-            '/api/v1/graph',
-          );
+        const [
+          response,
+          analyticsResponse,
+        ] = await Promise.all([
+          fetch('/api/v1/graph'),
+          fetch(
+            '/api/v1/analytics/network',
+          ),
+        ]);
 
         if (!response.ok) {
           throw new Error(
@@ -444,8 +554,40 @@ export function NetworkGraph({
         const data: GraphResponse =
           await response.json();
 
+        const analytics:
+          AnalyticsResponse =
+          analyticsResponse.ok
+            ? await analyticsResponse.json()
+            : {
+                nodes: [],
+              };
+
         dataRef.current =
           data.nodes;
+
+        analyticsRef.current =
+          new Map(
+            analytics.nodes.map(
+              (node) => [
+                node.id,
+                node,
+              ],
+            ),
+          );
+
+        setCommunityIds(
+          [
+            ...new Set(
+              analytics.nodes.map(
+                (node) =>
+                  node.communityId,
+              ),
+            ),
+          ].sort(
+            (a, b) =>
+              a - b,
+          ),
+        );
 
         const categoryMap =
           new Map<
@@ -684,6 +826,7 @@ export function NetworkGraph({
   }, [
     refreshKey,
     reloadKey,
+    colorMode,
     categoryFilter,
     interestFilter,
     minImportance,
@@ -747,6 +890,29 @@ export function NetworkGraph({
           >
             Refresh
           </button>
+
+          <label>
+            Color:{' '}
+            <select
+              value={colorMode}
+              onChange={(event) => {
+                setSelectedNode(null);
+
+                setColorMode(
+                  event.target
+                    .value as ColorMode,
+                );
+              }}
+            >
+              <option value="category">
+                Category
+              </option>
+
+              <option value="community">
+                Community
+              </option>
+            </select>
+          </label>
 
           <select
             value={categoryFilter}
@@ -884,59 +1050,120 @@ export function NetworkGraph({
           }}
         >
           <strong>
-            Category legend:
+            {colorMode === 'category'
+              ? 'Category legend:'
+              : 'Community legend:'}
           </strong>
 
-          <span>
-            <span
-              style={{
-                display:
-                  'inline-block',
-                width: '10px',
-                height: '10px',
-                borderRadius:
-                  '50%',
-                background:
-                  '#64748b',
-                marginRight:
-                  '5px',
-              }}
-            />
-            No category
-          </span>
-
-          {categories.map(
-            (category) => (
-              <span
-                key={category.id}
-              >
+          {colorMode === 'category' ? (
+            <>
+              <span>
                 <span
                   style={{
                     display:
                       'inline-block',
                     width: '10px',
-                    height:
-                      '10px',
+                    height: '10px',
                     borderRadius:
                       '50%',
                     background:
-                      categoryColor(
-                        category.name,
-                      ),
+                      '#64748b',
                     marginRight:
                       '5px',
                   }}
                 />
-                {category.name}
+                No category
               </span>
-            ),
+
+              {categories.map(
+                (category) => (
+                  <span
+                    key={category.id}
+                  >
+                    <span
+                      style={{
+                        display:
+                          'inline-block',
+                        width:
+                          '10px',
+                        height:
+                          '10px',
+                        borderRadius:
+                          '50%',
+                        background:
+                          categoryColor(
+                            category.name,
+                          ),
+                        marginRight:
+                          '5px',
+                      }}
+                    />
+
+                    {category.name}
+                  </span>
+                ),
+              )}
+            </>
+          ) : (
+            <>
+              {communityIds.length ? (
+                communityIds.map(
+                  (communityId) => (
+                    <span
+                      key={
+                        communityId
+                      }
+                    >
+                      <span
+                        style={{
+                          display:
+                            'inline-block',
+                          width:
+                            '10px',
+                          height:
+                            '10px',
+                          borderRadius:
+                            '50%',
+                          background:
+                            communityColor(
+                              communityId,
+                            ),
+                          marginRight:
+                            '5px',
+                        }}
+                      />
+
+                      Community{' '}
+                      {communityId}
+                    </span>
+                  ),
+                )
+              ) : (
+                <span>
+                  No community data
+                </span>
+              )}
+
+              <span>
+                Cluster hub =
+                +4 node size
+              </span>
+
+              <span>
+                Inter-cluster bridge =
+                +2 node size
+              </span>
+            </>
           )}
 
           <span>
             Node size =
             importance
-          </span>
-        </div>
+            {colorMode ===
+              'community'
+              ? ' + analytics role'
+              : ''}
+          </span>        </div>
 
         {error ? (
           <div
