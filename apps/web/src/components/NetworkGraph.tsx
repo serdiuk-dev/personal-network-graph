@@ -188,6 +188,9 @@ export function NetworkGraph({
   const [colorMode, setColorMode] =
     useState<ColorMode>('category');
 
+  const [showEdgeLabels, setShowEdgeLabels] =
+    useState(false);
+
   const [communityIds, setCommunityIds] =
     useState<number[]>([]);
 
@@ -314,11 +317,29 @@ export function NetworkGraph({
           person.importance * 2 +
           roleSizeBonus;
 
+        const roleMarker =
+          colorMode === 'community'
+            ? (
+                isClusterHub &&
+                isInterClusterBridge
+                  ? '★⇄ '
+                  : isClusterHub
+                    ? '★ '
+                    : isInterClusterBridge
+                      ? '⇄ '
+                      : ''
+              )
+            : '';
+
+        const displayLabel =
+          `${roleMarker}${person.label}`;
+
         if (!selectedId) {
           return {
             ...data,
             hidden: false,
             color,
+            label: displayLabel,
             size: nodeSize,
             highlighted:
               specialRole,
@@ -334,6 +355,7 @@ export function NetworkGraph({
             ...data,
             hidden: false,
             color,
+            label: displayLabel,
             highlighted: true,
             size: Math.max(
               16,
@@ -348,6 +370,7 @@ export function NetworkGraph({
             ...data,
             hidden: false,
             color,
+            label: displayLabel,
             highlighted: true,
             size: nodeSize,
             zIndex:
@@ -747,7 +770,7 @@ export function NetworkGraph({
           containerRef.current,
           {
             renderEdgeLabels:
-              true,
+              showEdgeLabels,
             zIndex: true,
           },
         );
@@ -827,6 +850,7 @@ export function NetworkGraph({
     refreshKey,
     reloadKey,
     colorMode,
+    showEdgeLabels,
     categoryFilter,
     interestFilter,
     minImportance,
@@ -912,6 +936,19 @@ export function NetworkGraph({
                 Community
               </option>
             </select>
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={showEdgeLabels}
+              onChange={(event) =>
+                setShowEdgeLabels(
+                  event.target.checked,
+                )
+              }
+            />{' '}
+            Edge labels
           </label>
 
           <select
@@ -1145,12 +1182,12 @@ export function NetworkGraph({
               )}
 
               <span>
-                Cluster hub =
+                ★ Cluster hub =
                 +4 node size
               </span>
 
               <span>
-                Inter-cluster bridge =
+                ⇄ Inter-cluster bridge =
                 +2 node size
               </span>
             </>
