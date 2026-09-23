@@ -2,9 +2,11 @@ import { ContactPlatform } from '@prisma/client';
 import {
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Min,
 } from 'class-validator';
 
 export class CreateContactChannelDto {
@@ -24,6 +26,11 @@ export class CreateContactChannelDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  externalId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   profileUrl?: string;
 
   @IsOptional()
@@ -31,8 +38,17 @@ export class CreateContactChannelDto {
   isPreferred?: boolean;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  priority?: number;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  automationAllowed?: boolean;
 
   @IsOptional()
   @IsString()

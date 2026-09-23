@@ -102,12 +102,15 @@ model ContactChannel {
   id          String          @id @default(uuid())
   personId    String
   platform    ContactPlatform
-  handle      String?
-  address     String?
-  profileUrl  String?
-  isPreferred Boolean         @default(false)
-  isActive    Boolean         @default(true)
-  notes       String?
+  handle            String?
+  address           String?
+  externalId        String?
+  profileUrl        String?
+  isPreferred       Boolean         @default(false)
+  priority          Int             @default(100)
+  isActive          Boolean         @default(true)
+  automationAllowed Boolean         @default(false)
+  notes             String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -115,4 +118,6 @@ model ContactChannel {
 
   @@index([personId])
   @@index([platform])
+  @@index([personId, priority])
+  @@index([platform, externalId])
 }

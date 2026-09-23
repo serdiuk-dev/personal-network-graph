@@ -19,9 +19,12 @@ type ContactChannel = {
   platform: ContactPlatform;
   handle: string | null;
   address: string | null;
+  externalId: string | null;
   profileUrl: string | null;
   isPreferred: boolean;
+  priority: number;
   isActive: boolean;
+  automationAllowed: boolean;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -37,9 +40,12 @@ type ChannelForm = {
   platform: ContactPlatform;
   handle: string;
   address: string;
+  externalId: string;
   profileUrl: string;
   isPreferred: boolean;
+  priority: number;
   isActive: boolean;
+  automationAllowed: boolean;
   notes: string;
 };
 
@@ -61,9 +67,12 @@ const emptyForm: ChannelForm = {
   platform: 'TELEGRAM',
   handle: '',
   address: '',
+  externalId: '',
   profileUrl: '',
   isPreferred: false,
+  priority: 100,
   isActive: true,
+  automationAllowed: false,
   notes: '',
 };
 
@@ -135,9 +144,12 @@ export function ContactChannelsManager({
       platform: channel.platform,
       handle: channel.handle ?? '',
       address: channel.address ?? '',
+      externalId: channel.externalId ?? '',
       profileUrl: channel.profileUrl ?? '',
       isPreferred: channel.isPreferred,
+      priority: channel.priority,
       isActive: channel.isActive,
+      automationAllowed: channel.automationAllowed,
       notes: channel.notes ?? '',
     });
   }
@@ -156,12 +168,18 @@ export function ContactChannelsManager({
         ? { address: form.address.trim() }
         : {}),
 
+      ...(form.externalId.trim()
+        ? { externalId: form.externalId.trim() }
+        : {}),
+
       ...(form.profileUrl.trim()
         ? { profileUrl: form.profileUrl.trim() }
         : {}),
 
       isPreferred: form.isPreferred,
+      priority: form.priority,
       isActive: form.isActive,
+      automationAllowed: form.automationAllowed,
 
       ...(form.notes.trim()
         ? { notes: form.notes.trim() }
@@ -358,6 +376,38 @@ export function ContactChannelsManager({
           }
         />
 
+        <input
+          placeholder="External ID"
+          value={form.externalId}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              externalId: event.target.value,
+            }))
+          }
+        />
+
+        <label>
+          Priority
+
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={form.priority}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                priority: Number(event.target.value),
+              }))
+            }
+            style={{
+              display: 'block',
+              width: '100%',
+            }}
+          />
+        </label>
+
         <label>
           <input
             type="checkbox"
@@ -384,6 +434,20 @@ export function ContactChannelsManager({
             }
           />{' '}
           Active
+        </label>
+
+        <label>
+          <input
+            type="checkbox"
+            checked={form.automationAllowed}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                automationAllowed: event.target.checked,
+              }))
+            }
+          />{' '}
+          Automation allowed
         </label>
 
         <textarea
@@ -440,6 +504,7 @@ export function ContactChannelsManager({
               <tr>
                 <th align="left">Platform</th>
                 <th align="left">Contact</th>
+                <th align="left">Routing</th>
                 <th align="left">Status</th>
                 <th align="left">Actions</th>
               </tr>
@@ -462,6 +527,20 @@ export function ContactChannelsManager({
                       channel.address ??
                       channel.profileUrl ??
                       '—'}
+                  </td>
+
+                  <td>
+                    Priority {channel.priority}
+                    <br />
+                    {channel.automationAllowed
+                      ? 'Auto send allowed'
+                      : 'Manual only'}
+                    {channel.externalId && (
+                      <>
+                        <br />
+                        ID: {channel.externalId}
+                      </>
+                    )}
                   </td>
 
                   <td>

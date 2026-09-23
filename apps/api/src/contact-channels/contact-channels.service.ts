@@ -49,6 +49,12 @@ export class ContactChannelsService {
           isPreferred: 'desc',
         },
         {
+          priority: 'asc',
+        },
+        {
+          priority: 'asc',
+        },
+        {
           platform: 'asc',
         },
         {
