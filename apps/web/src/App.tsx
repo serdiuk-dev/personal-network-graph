@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { NetworkGraph } from './components/NetworkGraph';
+import { NetworkOverview } from './components/NetworkOverview';
 import { PeopleManager } from './components/PeopleManager';
 import { RelationshipsManager } from './components/RelationshipsManager';
 import { TaxonomyManager } from './components/TaxonomyManager';
 
 type View =
   | 'graph'
+  | 'overview'
   | 'people'
   | 'relationships'
   | 'taxonomy';
@@ -53,6 +55,14 @@ function App() {
 
         <button
           type="button"
+          onClick={() => setView('overview')}
+          disabled={view === 'overview'}
+        >
+          Overview
+        </button>
+
+        <button
+          type="button"
           onClick={() => setView('people')}
           disabled={view === 'people'}
         >
@@ -85,6 +95,12 @@ function App() {
       >
         {view === 'graph' && (
           <NetworkGraph refreshKey={graphVersion} />
+        )}
+
+        {view === 'overview' && (
+          <NetworkOverview
+            refreshKey={graphVersion}
+          />
         )}
 
         {view === 'people' && (
