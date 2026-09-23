@@ -3,7 +3,12 @@ import { UndirectedGraph } from 'graphology';
 const louvain: typeof import('graphology-communities-louvain').default =
   require('graphology-communities-louvain');
 
-import betweennessCentrality from 'graphology-metrics/centrality/betweenness';
+const betweennessCentrality: typeof import(
+  'graphology-metrics/centrality/betweenness'
+).default =
+  require(
+    'graphology-metrics/centrality/betweenness',
+  );
 import { weightedDegree } from 'graphology-metrics/node/weighted-degree';
 
 import { PrismaService } from '../prisma.service';
