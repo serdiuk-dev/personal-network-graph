@@ -14,6 +14,8 @@ type TaxonomyItem = {
   name: string;
 };
 
+import { PRODIGY_LIGHT_THEME } from '../graph/graphTheme';
+
 type GraphNode = {
   id: string;
   label: string;
@@ -36,6 +38,8 @@ type GraphEdge = {
   type: string | null;
   strength: number;
   notes: string | null;
+  visualColor: string | null;
+  visualWidth: number | null;
 };
 
 type GraphResponse = {
@@ -66,38 +70,40 @@ type NetworkGraphProps = {
 };
 
 const CATEGORY_COLORS = [
-  '#2563eb',
-  '#16a34a',
-  '#9333ea',
-  '#ea580c',
+  '#0ea5e9',
+  '#14b8a6',
+  '#3b82f6',
+  '#06b6d4',
+  '#2dd4bf',
+  '#60a5fa',
+  '#38bdf8',
+  '#5eead4',
+  '#818cf8',
+  '#22d3ee',
   '#0891b2',
-  '#be123c',
-  '#4f46e5',
-  '#65a30d',
-  '#c026d3',
   '#0f766e',
 ];
 
 const COMMUNITY_COLORS = [
   '#2563eb',
-  '#16a34a',
-  '#dc2626',
-  '#9333ea',
-  '#ea580c',
   '#0891b2',
-  '#be123c',
-  '#4f46e5',
-  '#65a30d',
-  '#c026d3',
+  '#14b8a6',
+  '#6366f1',
+  '#0ea5e9',
   '#0f766e',
-  '#ca8a04',
+  '#3b82f6',
+  '#06b6d4',
+  '#4f46e5',
+  '#2dd4bf',
+  '#0284c7',
+  '#5b8def',
 ];
 
 function communityColor(
   communityId: number | undefined,
 ) {
   if (communityId === undefined) {
-    return '#64748b';
+    return PRODIGY_LIGHT_THEME.text.muted;
   }
 
   return COMMUNITY_COLORS[
@@ -108,7 +114,7 @@ function communityColor(
 
 function categoryColor(name: string | null) {
   if (!name) {
-    return '#64748b';
+    return PRODIGY_LIGHT_THEME.text.muted;
   }
 
   let hash = 0;
@@ -249,146 +255,174 @@ export function NetworkGraph({
         ? new Set(graph.neighbors(selectedId))
         : new Set<string>();
 
-    renderer.setSetting(
-      'nodeReducer',
-      (node, data) => {
-        const person =
-          dataRef.current.find(
-            (item) => item.id === node,
-          );
+      renderer.setSetting(
+        'nodeReducer',
+        (node, data) => {
+          const person =
+            dataRef.current.find(
+              (item) => item.id === node,
+            );
 
-        if (
-          !person ||
-          !visibleIds.has(node)
-        ) {
-          return {
-            ...data,
-            hidden: true,
-          };
-        }
+          if (
+            !person ||
+            !visibleIds.has(node)
+          ) {
+            return {
+              ...data,
+              hidden: true,
+            };
+          }
 
-        const analytics =
-          analyticsRef.current.get(
-            node,
-          );
+          const analytics =
+            analyticsRef.current.get(node);
 
-        const color =
-          colorMode === 'community'
-            ? communityColor(
-                analytics?.communityId,
-              )
-            : categoryColor(
-                primaryCategory(
-                  person,
-                ),
-              );
-
-        const isClusterHub =
-          analytics?.roles.includes(
-            'clusterHub',
-          ) ?? false;
-
-        const isInterClusterBridge =
-          analytics?.roles.includes(
-            'interClusterBridge',
-          ) ?? false;
-
-        const specialRole =
-          colorMode === 'community' &&
-          (
-            isClusterHub ||
-            isInterClusterBridge
-          );
-
-        const roleSizeBonus =
-          colorMode === 'community'
-            ? (
-                (isClusterHub ? 4 : 0) +
-                (
-                  isInterClusterBridge
-                    ? 2
-                    : 0
+          const color =
+            colorMode === 'community'
+              ? communityColor(
+                  analytics?.communityId,
                 )
-              )
-            : 0;
+              : categoryColor(
+                  primaryCategory(person),
+                );
 
-        const nodeSize =
-          6 +
-          person.importance * 2 +
-          roleSizeBonus;
+          const isClusterHub =
+            analytics?.roles.includes(
+              'clusterHub',
+            ) ?? false;
 
-        const roleMarker =
-          colorMode === 'community'
-            ? (
-                isClusterHub &&
-                isInterClusterBridge
-                  ? '★⇄ '
-                  : isClusterHub
-                    ? '★ '
-                    : isInterClusterBridge
-                      ? '⇄ '
-                      : ''
-              )
-            : '';
+          const isInterClusterBridge =
+            analytics?.roles.includes(
+              'interClusterBridge',
+            ) ?? false;
 
-        const displayLabel =
-          `${roleMarker}${person.label}`;
+          const specialRole =
+            colorMode === 'community' &&
+            (
+              isClusterHub ||
+              isInterClusterBridge
+            );
 
-        if (!selectedId) {
+          const roleSizeBonus =
+            colorMode === 'community'
+              ? (
+                  (
+                    isClusterHub
+                      ? PRODIGY_LIGHT_THEME.node
+                          .clusterHubBonus
+                      : 0
+                  ) +
+                  (
+                    isInterClusterBridge
+                      ? PRODIGY_LIGHT_THEME.node
+                          .interClusterBridgeBonus
+                      : 0
+                  )
+                )
+              : 0;
+
+          const nodeSize =
+            PRODIGY_LIGHT_THEME.node.baseSize +
+            person.importance *
+              PRODIGY_LIGHT_THEME.node
+                .importanceStep +
+            roleSizeBonus;
+
+          const displayLabel =
+            person.label;
+
+          const showOverviewLabel =
+            person.importance >=
+              PRODIGY_LIGHT_THEME.node
+                .overviewLabelMinImportance ||
+            specialRole;
+
+          /*
+           * Overview mode:
+           * keep the graph quiet and readable.
+           * Labels are shown only for important
+           * or analytically significant nodes.
+           */
+          if (!selectedId) {
+            return {
+              ...data,
+              hidden: false,
+              color,
+              label:
+                showOverviewLabel
+                  ? displayLabel
+                  : '',
+              size: nodeSize,
+              highlighted:
+                specialRole,
+              zIndex:
+                specialRole
+                  ? PRODIGY_LIGHT_THEME.focus
+                      .neighborZIndex
+                  : PRODIGY_LIGHT_THEME.focus
+                      .inactiveZIndex,
+            };
+          }
+
+          /*
+           * Selected person becomes the
+           * visual focal point.
+           */
+          if (node === selectedId) {
+            return {
+              ...data,
+              hidden: false,
+              color:
+                PRODIGY_LIGHT_THEME.node
+                  .selected,
+              label: displayLabel,
+              highlighted: true,
+              size: Math.max(
+                PRODIGY_LIGHT_THEME.node
+                  .selectedMinSize,
+                nodeSize,
+              ),
+              zIndex:
+                PRODIGY_LIGHT_THEME.focus
+                  .selectedZIndex,
+            };
+          }
+
+          /*
+           * Direct neighbors remain saturated
+           * and keep their category/community
+           * identity.
+           */
+          if (neighbors.has(node)) {
+            return {
+              ...data,
+              hidden: false,
+              color,
+              label: displayLabel,
+              highlighted: true,
+              size: nodeSize,
+              zIndex:
+                PRODIGY_LIGHT_THEME.focus
+                  .neighborZIndex,
+            };
+          }
+
+          /*
+           * Everything else remains present
+           * but fades into background depth.
+           */
           return {
             ...data,
             hidden: false,
-            color,
-            label: displayLabel,
-            size: nodeSize,
-            highlighted:
-              specialRole,
+            color:
+              PRODIGY_LIGHT_THEME.node
+                .inactive,
+            label: '',
             zIndex:
-              specialRole
-                ? 2
-                : 0,
+              PRODIGY_LIGHT_THEME.focus
+                .inactiveZIndex,
           };
-        }
-
-        if (node === selectedId) {
-          return {
-            ...data,
-            hidden: false,
-            color,
-            label: displayLabel,
-            highlighted: true,
-            size: Math.max(
-              16,
-              nodeSize,
-            ),
-            zIndex: 3,
-          };
-        }
-
-        if (neighbors.has(node)) {
-          return {
-            ...data,
-            hidden: false,
-            color,
-            label: displayLabel,
-            highlighted: true,
-            size: nodeSize,
-            zIndex:
-              specialRole
-                ? 2
-                : 1,
-          };
-        }
-
-        return {
-          ...data,
-          hidden: false,
-          color: '#d1d5db',
-          label: '',
-          zIndex: 0,
-        };
-      },
-    );
+        },
+      );
 
     renderer.setSetting(
       'edgeReducer',
@@ -409,29 +443,88 @@ export function NetworkGraph({
           };
         }
 
-        if (
-          selectedId &&
-          source !== selectedId &&
-          target !== selectedId
-        ) {
+        const visualColor =
+          graph.getEdgeAttribute(
+            edge,
+            'visualColor',
+          ) as string | null | undefined;
+
+        const visualWidth =
+          graph.getEdgeAttribute(
+            edge,
+            'visualWidth',
+          ) as number | null | undefined;
+
+        const baseSize =
+          Number(
+            visualWidth ??
+              data.size ??
+              PRODIGY_LIGHT_THEME.edge
+                .defaultWidth,
+          );
+
+        /*
+         * Overview:
+         * custom per-edge styling is visible here.
+         */
+        if (!selectedId) {
           return {
             ...data,
-            hidden: true,
+            hidden: false,
+            color:
+              visualColor ??
+              data.color ??
+              PRODIGY_LIGHT_THEME.edge
+                .default,
+            size: baseSize,
+            zIndex: 0,
           };
         }
 
+        const isActiveRelationship =
+          source === selectedId ||
+          target === selectedId;
+
+        /*
+         * Focus:
+         * direct relationships stay strong.
+         * Explicit user styling wins over
+         * the automatic active style.
+         */
+        if (isActiveRelationship) {
+          return {
+            ...data,
+            hidden: false,
+            color:
+              visualColor ??
+              PRODIGY_LIGHT_THEME.edge
+                .active,
+            size:
+              visualWidth ??
+              Math.max(
+                baseSize,
+                PRODIGY_LIGHT_THEME.edge
+                  .activeWidth,
+              ),
+            zIndex: 2,
+          };
+        }
+
+        /*
+         * Unrelated topology remains visible
+         * but is intentionally de-emphasized.
+         */
         return {
           ...data,
           hidden: false,
-          size: selectedId
-            ? Math.max(
-                data.size ?? 1,
-                2,
-              )
-            : data.size,
-          zIndex: selectedId
-            ? 1
-            : 0,
+          color:
+            PRODIGY_LIGHT_THEME.edge
+              .inactive,
+          label: '',
+          size:
+            PRODIGY_LIGHT_THEME.edge
+              .inactiveWidth,
+          zIndex: 0,
         };
       },
     );
@@ -693,9 +786,11 @@ export function NetworkGraph({
                   angle,
                 ),
                 size:
-                  6 +
-                  node.importance *
-                    2,
+                    PRODIGY_LIGHT_THEME.node
+                      .baseSize +
+                    node.importance *
+                      PRODIGY_LIGHT_THEME.node
+                        .importanceStep,
                 color:
                   categoryColor(
                     primaryCategory(
@@ -719,6 +814,25 @@ export function NetworkGraph({
                 edge.target,
               )
             ) {
+              const strength =
+                Math.max(
+                  1,
+                  edge.strength,
+                );
+
+              const automaticWidth =
+                PRODIGY_LIGHT_THEME.edge
+                  .defaultWidth +
+                Math.min(
+                  (
+                    strength - 1
+                  ) *
+                    PRODIGY_LIGHT_THEME.edge
+                      .strengthWidthStep,
+                  PRODIGY_LIGHT_THEME.edge
+                    .maxStrengthWidthBonus,
+                );
+
               graph.addDirectedEdgeWithKey(
                 edge.id,
                 edge.source,
@@ -727,16 +841,24 @@ export function NetworkGraph({
                   label:
                     edge.type ??
                     undefined,
+
                   size:
-                    Math.max(
-                      1,
-                      edge.strength,
-                    ),
+                    edge.visualWidth ??
+                    automaticWidth,
+
+                  color:
+                    edge.visualColor ??
+                    PRODIGY_LIGHT_THEME.edge
+                      .default,
+
+                  visualColor:
+                    edge.visualColor,
+
+                  visualWidth:
+                    edge.visualWidth,
+
                   weight:
-                    Math.max(
-                      1,
-                      edge.strength,
-                    ),
+                    strength,
                 },
               );
             }
@@ -1182,13 +1304,19 @@ export function NetworkGraph({
               )}
 
               <span>
-                ★ Cluster hub =
-                +4 node size
+                Cluster hub = larger node
+                {' (+'}
+                {PRODIGY_LIGHT_THEME.node
+                  .clusterHubBonus}
+                {')'}
               </span>
 
               <span>
-                ⇄ Inter-cluster bridge =
-                +2 node size
+                Inter-cluster bridge = larger node
+                {' (+'}
+                {PRODIGY_LIGHT_THEME.node
+                  .interClusterBridgeBonus}
+                {')'}
               </span>
             </>
           )}
@@ -1214,6 +1342,8 @@ export function NetworkGraph({
           <div
             ref={containerRef}
             style={{
+              background:
+                PRODIGY_LIGHT_THEME.canvas.background,
               flex: 1,
               minHeight: 0,
               width: '100%',

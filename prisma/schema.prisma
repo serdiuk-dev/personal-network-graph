@@ -36,9 +36,11 @@ model Relationship {
   fromId    String
   toId      String
   type      String?
-  strength  Int      @default(1)
-  notes     String?
-  createdAt DateTime @default(now())
+  strength    Int      @default(1)
+  notes       String?
+  visualColor String?
+  visualWidth Float?
+  createdAt   DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   from Person @relation("RelationshipFrom", fields: [fromId], references: [id], onDelete: Cascade)

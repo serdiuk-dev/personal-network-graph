@@ -66,6 +66,10 @@ export class GraphService {
       type: relationship.type,
       strength: relationship.strength,
       notes: relationship.notes,
+      visualColor:
+        relationship.visualColor,
+      visualWidth:
+        relationship.visualWidth,
     }));
 
     return {

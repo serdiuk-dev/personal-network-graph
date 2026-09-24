@@ -3,6 +3,7 @@ import { NetworkGraph } from './components/NetworkGraph';
 import { NetworkOverview } from './components/NetworkOverview';
 import { PeopleManager } from './components/PeopleManager';
 import { RelationshipsManager } from './components/RelationshipsManager';
+import { RelationshipStyleManager } from './components/RelationshipStyleManager';
 import { TaxonomyManager } from './components/TaxonomyManager';
 
 type View =
@@ -10,6 +11,7 @@ type View =
   | 'overview'
   | 'people'
   | 'relationships'
+  | 'edgeStyles'
   | 'taxonomy';
 
 function App() {
@@ -75,6 +77,14 @@ function App() {
           disabled={view === 'relationships'}
         >
           Relationships
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setView('edgeStyles')}
+          disabled={view === 'edgeStyles'}
+        >
+          Edge Styles
         </button>
 
         <button
