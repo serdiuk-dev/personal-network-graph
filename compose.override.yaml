@@ -1,0 +1,27 @@
+services:
+  web:
+    networks:
+      - backend
+      - n8n_network
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=n8n_network"
+
+      - "traefik.http.routers.pnet.rule=Host(`pnet.srv1068851.hstgr.cloud`)"
+      - "traefik.http.routers.pnet.entrypoints=websecure"
+      - "traefik.http.routers.pnet.tls=true"
+      - "traefik.http.routers.pnet.tls.certresolver=letsencrypt"
+
+      - "traefik.http.services.pnet.loadbalancer.server.port=80"
+
+      - "traefik.http.routers.pnet-http.rule=Host(`pnet.srv1068851.hstgr.cloud`)"
+      - "traefik.http.routers.pnet-http.entrypoints=web"
+      - "traefik.http.routers.pnet-http.middlewares=pnet-https"
+
+      - "traefik.http.middlewares.pnet-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.pnet-https.redirectscheme.permanent=true"
+
+networks:
+  n8n_network:
+    external: true
