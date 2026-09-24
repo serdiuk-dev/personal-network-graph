@@ -4,6 +4,7 @@ import { NetworkOverview } from './components/NetworkOverview';
 import { PeopleManager } from './components/PeopleManager';
 import { RelationshipsManager } from './components/RelationshipsManager';
 import { RelationshipStyleManager } from './components/RelationshipStyleManager';
+import { GraphStyleManager } from './components/GraphStyleManager';
 import { TaxonomyManager } from './components/TaxonomyManager';
 
 type View =
@@ -12,6 +13,7 @@ type View =
   | 'people'
   | 'relationships'
   | 'edgeStyles'
+  | 'graphStyles'
   | 'taxonomy';
 
 function App() {
@@ -89,6 +91,14 @@ function App() {
 
         <button
           type="button"
+          onClick={() => setView('graphStyles')}
+          disabled={view === 'graphStyles'}
+        >
+          Graph Styles
+        </button>
+
+        <button
+          type="button"
           onClick={() => setView('taxonomy')}
           disabled={view === 'taxonomy'}
         >
@@ -119,6 +129,18 @@ function App() {
 
         {view === 'relationships' && (
           <RelationshipsManager
+            onChanged={notifyGraphChanged}
+          />
+        )}
+
+        {view === 'edgeStyles' && (
+          <RelationshipStyleManager
+            onChanged={notifyGraphChanged}
+          />
+        )}
+
+        {view === 'graphStyles' && (
+          <GraphStyleManager
             onChanged={notifyGraphChanged}
           />
         )}

@@ -15,6 +15,7 @@ type Person = {
   country: string | null;
   notes: string | null;
   importance: number;
+  networkCircle: 'INNER' | 'MIDDLE' | 'OUTER';
   createdAt: string;
   updatedAt: string;
 };
@@ -31,6 +32,7 @@ type PersonForm = {
   country: string;
   notes: string;
   importance: number;
+  networkCircle: 'INNER' | 'MIDDLE' | 'OUTER';
 };
 
 const emptyForm: PersonForm = {
@@ -45,6 +47,7 @@ const emptyForm: PersonForm = {
   country: '',
   notes: '',
   importance: 1,
+  networkCircle: 'MIDDLE',
 };
 
 type PeopleManagerProps = {
@@ -114,6 +117,7 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
       country: person.country ?? '',
       notes: person.notes ?? '',
       importance: person.importance,
+      networkCircle: person.networkCircle ?? 'MIDDLE',
     });
 
     window.scrollTo({
@@ -160,6 +164,7 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
         ? { notes: form.notes.trim() }
         : {}),
       importance: Number(form.importance),
+      networkCircle: form.networkCircle,
     };
 
     try {
@@ -352,6 +357,36 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
             <option value={3}>3</option>
             <option value={4}>4</option>
             <option value={5}>5</option>
+          </select>
+        </label>
+
+        <label>
+          Network circle
+          <select
+            value={form.networkCircle}
+            onChange={(event) =>
+              updateField(
+                'networkCircle',
+                event.target.value as
+                  | 'INNER'
+                  | 'MIDDLE'
+                  | 'OUTER',
+              )
+            }
+            style={{
+              display: 'block',
+              width: '100%',
+            }}
+          >
+            <option value="INNER">
+              Inner — close circle
+            </option>
+            <option value="MIDDLE">
+              Middle — regular circle
+            </option>
+            <option value="OUTER">
+              Outer — distant circle
+            </option>
           </select>
         </label>
 

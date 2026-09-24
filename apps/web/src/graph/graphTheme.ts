@@ -36,6 +36,29 @@ export const PRODIGY_LIGHT_THEME = {
     interClusterBridgeBonus: 2,
   },
 
+  radial: {
+    selfColor: '#0891b2',
+    selfSize: 22,
+
+    radii: {
+      INNER: 1.0,
+      MIDDLE: 2.2,
+      OUTER: 3.6,
+    },
+
+    edgeColors: {
+      INNER: '#9bded9',
+      MIDDLE: '#c7e0e8',
+      OUTER: '#e1ebef',
+    },
+
+    edgeWidths: {
+      INNER: 0.85,
+      MIDDLE: 0.60,
+      OUTER: 0.40,
+    },
+  },
+
   edge: {
     default: '#bfd6e3',
     active: '#65b7e8',

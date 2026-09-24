@@ -47,6 +47,7 @@ export class GraphService {
       city: person.city,
       country: person.country,
       importance: person.importance,
+      networkCircle: person.networkCircle,
 
       categories: person.categories.map((item) => ({
         id: item.category.id,

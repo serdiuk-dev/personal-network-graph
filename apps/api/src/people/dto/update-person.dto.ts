@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -55,4 +56,8 @@ export class UpdatePersonDto {
   @Min(1)
   @Max(5)
   importance?: number;
+
+  @IsOptional()
+  @IsIn(['INNER', 'MIDDLE', 'OUTER'])
+  networkCircle?: 'INNER' | 'MIDDLE' | 'OUTER';
 }

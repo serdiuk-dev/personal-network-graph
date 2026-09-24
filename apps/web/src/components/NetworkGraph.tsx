@@ -6,8 +6,8 @@ import {
 } from 'react';
 
 import Graph from 'graphology';
-import forceAtlas2 from 'graphology-layout-forceatlas2';
 import Sigma from 'sigma';
+import EdgeCurveProgram from '@sigma/edge-curve';
 
 type TaxonomyItem = {
   id: string;
@@ -15,6 +15,10 @@ type TaxonomyItem = {
 };
 
 import { PRODIGY_LIGHT_THEME } from '../graph/graphTheme';
+import {
+  DEFAULT_GRAPH_STYLES,
+  type GraphStyleSettings,
+} from './GraphStyleManager';
 
 type GraphNode = {
   id: string;
@@ -27,6 +31,7 @@ type GraphNode = {
   city: string | null;
   country: string | null;
   importance: number;
+  networkCircle: 'INNER' | 'MIDDLE' | 'OUTER';
   categories: TaxonomyItem[];
   interests: TaxonomyItem[];
 };
@@ -139,6 +144,539 @@ function primaryCategory(node: GraphNode) {
   )[0].name;
 }
 
+type NetworkCircle =
+  | 'INNER'
+  | 'MIDDLE'
+  | 'OUTER';
+
+const SELF_NODE_ID =
+  '__PNET_SELF__';
+
+const SELF_EDGE_PREFIX =
+  '__PNET_SELF_EDGE__:';
+
+function normalizeNetworkCircle(
+  node: GraphNode,
+): NetworkCircle {
+  return node.networkCircle ?? 'MIDDLE';
+}
+
+function circleLabel(
+  circle: NetworkCircle,
+) {
+  switch (circle) {
+    case 'INNER':
+      return 'Inner — close circle';
+    case 'OUTER':
+      return 'Outer — distant circle';
+    default:
+      return 'Middle — regular circle';
+  }
+}
+
+function edgeCurvature(
+  key: string,
+  circle: NetworkCircle = 'MIDDLE',
+  relationship = false,
+) {
+  let hash = 0;
+
+  for (
+    let index = 0;
+    index < key.length;
+    index += 1
+  ) {
+    hash =
+      (
+        hash * 31 +
+        key.charCodeAt(index)
+      ) >>> 0;
+  }
+
+  const circleBase: Record<
+    NetworkCircle,
+    number
+  > = {
+    INNER: 0.10,
+    MIDDLE: 0.14,
+    OUTER: 0.18,
+  };
+
+  const base =
+    relationship
+      ? 0.18
+      : circleBase[circle];
+
+  return (
+    base +
+    (hash % 5) * 0.018
+  );
+}
+
+function softenHexColor(
+  color: string,
+  mixToWhite: number,
+) {
+  const match =
+    /^#([0-9a-f]{6})$/i.exec(
+      color,
+    );
+
+  if (!match) {
+    return color;
+  }
+
+  const value =
+    Number.parseInt(
+      match[1],
+      16,
+    );
+
+  const source = [
+    (value >> 16) & 255,
+    (value >> 8) & 255,
+    value & 255,
+  ];
+
+  const result =
+    source.map((channel) =>
+      Math.round(
+        channel +
+        (255 - channel) *
+          mixToWhite,
+      ),
+    );
+
+  return `#${result
+    .map((channel) =>
+      channel
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`;
+}
+
+function displayEdgeWidth(
+  rawWidth: number,
+  focused = false,
+) {
+  const bounded =
+    Math.max(
+      0.25,
+      Math.min(
+        8,
+        Number(rawWidth) || 0.25,
+      ),
+    );
+
+  return focused
+    ? 0.9 + bounded * 0.42
+    : 0.28 + bounded * 0.225;
+}
+
+function egoStyleForCircle(
+  styles: GraphStyleSettings,
+  circle: NetworkCircle,
+) {
+  switch (circle) {
+    case 'INNER':
+      return {
+        color: styles.innerEgoColor,
+        opacity: styles.innerEgoOpacity,
+        width: styles.innerEgoWidth,
+      };
+
+    case 'OUTER':
+      return {
+        color: styles.outerEgoColor,
+        opacity: styles.outerEgoOpacity,
+        width: styles.outerEgoWidth,
+      };
+
+    default:
+      return {
+        color: styles.middleEgoColor,
+        opacity: styles.middleEgoOpacity,
+        width: styles.middleEgoWidth,
+      };
+  }
+}
+
+function ringStyleForCircle(
+  styles: GraphStyleSettings,
+  circle: NetworkCircle,
+) {
+  switch (circle) {
+    case 'INNER':
+      return {
+        color: styles.innerRingColor,
+        opacity: styles.innerRingOpacity,
+        width: styles.innerRingWidth,
+      };
+
+    case 'OUTER':
+      return {
+        color: styles.outerRingColor,
+        opacity: styles.outerRingOpacity,
+        width: styles.outerRingWidth,
+      };
+
+    default:
+      return {
+        color: styles.middleRingColor,
+        opacity: styles.middleRingOpacity,
+        width: styles.middleRingWidth,
+      };
+  }
+}
+
+function hexToRgba(
+  color: string,
+  opacity: number,
+) {
+  const match =
+    /^#([0-9a-f]{6})$/i.exec(
+      color,
+    );
+
+  if (!match) {
+    return color;
+  }
+
+  const value =
+    Number.parseInt(
+      match[1],
+      16,
+    );
+
+  const red =
+    (value >> 16) & 255;
+
+  const green =
+    (value >> 8) & 255;
+
+  const blue =
+    value & 255;
+
+  return `rgba(${red}, ${green}, ${blue}, ${Math.max(
+    0,
+    Math.min(
+      1,
+      opacity,
+    ),
+  )})`;
+}
+
+function installProdigyVisualLayer(
+  renderer: Sigma,
+  container: HTMLDivElement,
+  styles: GraphStyleSettings,
+) {
+  container.style.position =
+    'relative';
+
+  container.style.overflow =
+    'hidden';
+
+  const guidesLayer =
+    document.createElement('div');
+
+  Object.assign(
+    guidesLayer.style,
+    {
+      position: 'absolute',
+      inset: '0',
+      pointerEvents: 'none',
+      overflow: 'hidden',
+    },
+  );
+
+  const circleNames: Record<
+    NetworkCircle,
+    string
+  > = {
+    INNER: 'CLOSE',
+    MIDDLE: 'REGULAR',
+    OUTER: 'DISTANT',
+  };
+
+  const rings =
+    (
+      [
+        'OUTER',
+        'MIDDLE',
+        'INNER',
+      ] as NetworkCircle[]
+    ).map((circle) => {
+      const ring =
+        document.createElement('div');
+
+      const ringStyle =
+        ringStyleForCircle(
+          styles,
+          circle,
+        );
+
+      Object.assign(
+        ring.style,
+        {
+          position: 'absolute',
+          borderRadius: '50%',
+          border:
+            `${ringStyle.width}px solid ${hexToRgba(
+              ringStyle.color,
+              ringStyle.opacity,
+            )}`,
+          transform:
+            'translate(-50%, -50%)',
+          boxSizing: 'border-box',
+        },
+      );
+
+      if (circle === 'OUTER') {
+        ring.style.background =
+          'radial-gradient(circle, rgba(37,99,235,0.018) 0%, rgba(20,184,166,0.012) 48%, rgba(255,255,255,0) 72%)';
+      }
+
+      const label =
+        document.createElement('span');
+
+      label.textContent =
+        circleNames[circle];
+
+      Object.assign(
+        label.style,
+        {
+          position: 'absolute',
+          left: '50%',
+          top: '-8px',
+          transform:
+            'translate(-50%, -100%)',
+          fontFamily:
+            'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+          fontSize: '9px',
+          fontWeight: '600',
+          letterSpacing: '0.18em',
+          color:
+            hexToRgba(
+              ringStyle.color,
+              Math.min(
+                1,
+                ringStyle.opacity + 0.18,
+              ),
+            ),
+          whiteSpace: 'nowrap',
+        },
+      );
+
+      ring.appendChild(label);
+      guidesLayer.appendChild(ring);
+
+      return {
+        circle,
+        ring,
+      };
+    });
+
+  container.insertBefore(
+    guidesLayer,
+    container.firstChild,
+  );
+
+  const hubLayer =
+    document.createElement('div');
+
+  Object.assign(
+    hubLayer.style,
+    {
+      position: 'absolute',
+      inset: '0',
+      pointerEvents: 'none',
+      overflow: 'hidden',
+    },
+  );
+
+  const hub =
+    document.createElement('div');
+
+  Object.assign(
+    hub.style,
+    {
+      position: 'absolute',
+      width: '92px',
+      height: '92px',
+      borderRadius: '50%',
+      transform:
+        'translate(-50%, -50%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxSizing: 'border-box',
+
+      background:
+        'linear-gradient(135deg, #2563eb 0%, #0ea5e9 42%, #18c7bd 100%)',
+
+      color: '#ffffff',
+      fontFamily:
+        'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+      fontWeight: '700',
+      fontSize: '18px',
+      letterSpacing: '0.08em',
+
+      border:
+        '1px solid rgba(255,255,255,0.82)',
+
+      boxShadow:
+        [
+          '0 0 0 8px rgba(14,165,233,0.055)',
+          '0 0 0 18px rgba(24,199,189,0.028)',
+          '0 12px 36px rgba(37,99,235,0.16)',
+          '0 0 54px rgba(14,165,233,0.13)',
+        ].join(', '),
+    },
+  );
+
+  hub.textContent = 'Я';
+
+  hubLayer.appendChild(hub);
+  container.appendChild(hubLayer);
+
+  const update = () => {
+    const center =
+      renderer.graphToViewport({
+        x: 0,
+        y: 0,
+      });
+
+    hub.style.left =
+      `${center.x}px`;
+
+    hub.style.top =
+      `${center.y}px`;
+
+    rings.forEach(
+      ({ circle, ring }) => {
+        const radius =
+          PRODIGY_LIGHT_THEME.radial
+            .radii[circle];
+
+        const point =
+          renderer.graphToViewport({
+            x: radius,
+            y: 0,
+          });
+
+        const radiusPx =
+          Math.hypot(
+            point.x - center.x,
+            point.y - center.y,
+          );
+
+        const diameter =
+          radiusPx * 2;
+
+        ring.style.left =
+          `${center.x}px`;
+
+        ring.style.top =
+          `${center.y}px`;
+
+        ring.style.width =
+          `${diameter}px`;
+
+        ring.style.height =
+          `${diameter}px`;
+      },
+    );
+  };
+
+  renderer.on(
+    'afterRender',
+    update,
+  );
+
+  requestAnimationFrame(update);
+
+  return () => {
+    renderer.off(
+      'afterRender',
+      update,
+    );
+
+    guidesLayer.remove();
+    hubLayer.remove();
+  };
+}
+
+function buildRadialPositions(
+  nodes: GraphNode[],
+) {
+  const groups: Record<
+    NetworkCircle,
+    GraphNode[]
+  > = {
+    INNER: [],
+    MIDDLE: [],
+    OUTER: [],
+  };
+
+  nodes.forEach((node) => {
+    groups[
+      normalizeNetworkCircle(node)
+    ].push(node);
+  });
+
+  const circles: NetworkCircle[] = [
+    'INNER',
+    'MIDDLE',
+    'OUTER',
+  ];
+
+  const angleOffsets: Record<
+    NetworkCircle,
+    number
+  > = {
+    INNER: -Math.PI / 2,
+    MIDDLE: -Math.PI / 2 + Math.PI / 5,
+    OUTER: -Math.PI / 2 + Math.PI / 10,
+  };
+
+  const result =
+    new Map<
+      string,
+      { x: number; y: number }
+    >();
+
+  circles.forEach((circle) => {
+    const group = [...groups[circle]].sort(
+      (a, b) =>
+        b.importance - a.importance ||
+        a.label.localeCompare(b.label),
+    );
+
+    const goldenAngle =
+      Math.PI *
+      (3 - Math.sqrt(5));
+
+    group.forEach((node, index) => {
+      const angle =
+        angleOffsets[circle] +
+        index * goldenAngle;
+
+      const radius =
+        PRODIGY_LIGHT_THEME.radial
+          .radii[circle];
+
+      result.set(node.id, {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      });
+    });
+  });
+
+  return result;
+}
+
 export function NetworkGraph({
   refreshKey,
 }: NetworkGraphProps) {
@@ -158,6 +696,11 @@ export function NetworkGraph({
     useRef<
       Map<string, AnalyticsNode>
     >(new Map());
+
+  const graphStyleRef =
+    useRef<GraphStyleSettings>({
+      ...DEFAULT_GRAPH_STYLES,
+    });
 
   const [meta, setMeta] = useState({
     nodeCount: 0,
@@ -258,6 +801,22 @@ export function NetworkGraph({
       renderer.setSetting(
         'nodeReducer',
         (node, data) => {
+          if (node === SELF_NODE_ID) {
+            return {
+              ...data,
+              hidden: false,
+              label: '',
+              color:
+                PRODIGY_LIGHT_THEME.radial
+                  .selfColor,
+              size:
+                PRODIGY_LIGHT_THEME.radial
+                  .selfSize,
+              highlighted: true,
+              zIndex: 4,
+            };
+          }
+
           const person =
             dataRef.current.find(
               (item) => item.id === node,
@@ -433,6 +992,105 @@ export function NetworkGraph({
         const target =
           graph.target(edge);
 
+        const styles =
+          graphStyleRef.current;
+
+        const isEgoEdge =
+          Boolean(
+            graph.getEdgeAttribute(
+              edge,
+              'isEgo',
+            ),
+          );
+
+        if (isEgoEdge) {
+          const personId =
+            source === SELF_NODE_ID
+              ? target
+              : source;
+
+          if (!visibleIds.has(personId)) {
+            return {
+              ...data,
+              hidden: true,
+            };
+          }
+
+          const circle =
+            (
+              graph.getEdgeAttribute(
+                edge,
+                'networkCircle',
+              ) as NetworkCircle | undefined
+            ) ?? 'MIDDLE';
+
+          const egoStyle =
+            egoStyleForCircle(
+              styles,
+              circle,
+            );
+
+          if (!selectedId) {
+            return {
+              ...data,
+              hidden: false,
+              label: '',
+              color:
+                softenHexColor(
+                  egoStyle.color,
+                  1 -
+                    egoStyle.opacity,
+                ),
+              size:
+                egoStyle.width,
+              zIndex: 0,
+            };
+          }
+
+          if (personId === selectedId) {
+            return {
+              ...data,
+              hidden: false,
+              label: '',
+              color:
+                softenHexColor(
+                  egoStyle.color,
+                  1 -
+                    Math.min(
+                      1,
+                      egoStyle.opacity +
+                        0.20,
+                    ),
+                ),
+              size:
+                Math.max(
+                  egoStyle.width * 1.7,
+                  0.8,
+                ),
+              zIndex: 1,
+            };
+          }
+
+          return {
+            ...data,
+            hidden: false,
+            label: '',
+            color:
+              softenHexColor(
+                egoStyle.color,
+                1 -
+                  egoStyle.opacity *
+                    0.55,
+              ),
+            size:
+              Math.max(
+                egoStyle.width * 0.55,
+                0.2,
+              ),
+            zIndex: 0,
+          };
+        }
+
         if (
           !visibleIds.has(source) ||
           !visibleIds.has(target)
@@ -463,20 +1121,29 @@ export function NetworkGraph({
                 .defaultWidth,
           );
 
-        /*
-         * Overview:
-         * custom per-edge styling is visible here.
-         */
         if (!selectedId) {
+          const overviewColor =
+            visualColor ??
+            styles
+              .relationshipDefaultColor;
+
           return {
             ...data,
             hidden: false,
             color:
-              visualColor ??
-              data.color ??
-              PRODIGY_LIGHT_THEME.edge
-                .default,
-            size: baseSize,
+              softenHexColor(
+                overviewColor,
+                1 -
+                  styles
+                    .relationshipDefaultOpacity,
+              ),
+            size:
+              displayEdgeWidth(
+                baseSize,
+                false,
+              ) *
+              styles
+                .relationshipDefaultWidthScale,
             zIndex: 0,
           };
         }
@@ -485,45 +1152,56 @@ export function NetworkGraph({
           source === selectedId ||
           target === selectedId;
 
-        /*
-         * Focus:
-         * direct relationships stay strong.
-         * Explicit user styling wins over
-         * the automatic active style.
-         */
         if (isActiveRelationship) {
+          const activeColor =
+            visualColor ??
+            styles
+              .relationshipFocusColor;
+
+          const activeWidth =
+            visualWidth ??
+            Math.max(
+              baseSize,
+              PRODIGY_LIGHT_THEME.edge
+                .activeWidth,
+            );
+
           return {
             ...data,
             hidden: false,
             color:
-              visualColor ??
-              PRODIGY_LIGHT_THEME.edge
-                .active,
-            size:
-              visualWidth ??
-              Math.max(
-                baseSize,
-                PRODIGY_LIGHT_THEME.edge
-                  .activeWidth,
+              softenHexColor(
+                activeColor,
+                1 -
+                  styles
+                    .relationshipFocusOpacity,
               ),
+            size:
+              displayEdgeWidth(
+                activeWidth,
+                true,
+              ) *
+              styles
+                .relationshipFocusWidthScale,
             zIndex: 2,
           };
         }
 
-        /*
-         * Unrelated topology remains visible
-         * but is intentionally de-emphasized.
-         */
         return {
           ...data,
           hidden: false,
           color:
-            PRODIGY_LIGHT_THEME.edge
-              .inactive,
+            softenHexColor(
+              styles
+                .relationshipInactiveColor,
+              1 -
+                styles
+                  .relationshipInactiveOpacity,
+            ),
           label: '',
           size:
-            PRODIGY_LIGHT_THEME.edge
-              .inactiveWidth,
+            styles
+              .relationshipInactiveWidth,
           zIndex: 0,
         };
       },
@@ -538,6 +1216,35 @@ export function NetworkGraph({
     const renderer = sigmaRef.current;
 
     if (!renderer) {
+      return;
+    }
+
+    if (nodeId === SELF_NODE_ID) {
+      setSelectedNode(null);
+      applyGraphView(null);
+
+      const position =
+        renderer.getNodeDisplayData(
+          SELF_NODE_ID,
+        );
+
+      if (position) {
+        renderer
+          .getCamera()
+          .animate(
+            {
+              x: position.x,
+              y: position.y,
+              ratio: 0.85,
+            },
+            {
+              duration:
+                PRODIGY_LIGHT_THEME.motion
+                  .cameraDurationMs,
+            },
+          );
+      }
+
       return;
     }
 
@@ -649,15 +1356,23 @@ export function NetworkGraph({
     let renderer: Sigma | null =
       null;
 
+    let disposeProdigyLayer:
+      (() => void) | null =
+      null;
+
     async function loadGraph() {
       try {
         const [
           response,
           analyticsResponse,
+          graphStylesResponse,
         ] = await Promise.all([
           fetch('/api/v1/graph'),
           fetch(
             '/api/v1/analytics/network',
+          ),
+          fetch(
+            '/api/v1/graph-styles',
           ),
         ]);
 
@@ -677,6 +1392,17 @@ export function NetworkGraph({
             : {
                 nodes: [],
               };
+
+        const graphStyles:
+          GraphStyleSettings =
+          graphStylesResponse.ok
+            ? await graphStylesResponse.json()
+            : DEFAULT_GRAPH_STYLES;
+
+        graphStyleRef.current = {
+          ...DEFAULT_GRAPH_STYLES,
+          ...graphStyles,
+        };
 
         dataRef.current =
           data.nodes;
@@ -761,36 +1487,58 @@ export function NetworkGraph({
             multi: false,
           });
 
-        const total =
-          Math.max(
-            data.nodes.length,
-            1,
+        const positions =
+          buildRadialPositions(
+            data.nodes,
           );
 
+        /*
+         * The ego node is visual/system state only.
+         * It is intentionally NOT persisted as Person
+         * and therefore does not affect analytics.
+         */
+        graph.addNode(
+          SELF_NODE_ID,
+          {
+            label: '',
+            x: 0,
+            y: 0,
+            size:
+              PRODIGY_LIGHT_THEME.radial
+                .selfSize,
+            color:
+              PRODIGY_LIGHT_THEME.radial
+                .selfColor,
+            isSelf: true,
+          },
+        );
+
         data.nodes.forEach(
-          (node, index) => {
-            const angle =
-              (index / total) *
-              Math.PI *
-              2;
+          (node) => {
+            const circle =
+              normalizeNetworkCircle(
+                node,
+              );
+
+            const position =
+              positions.get(node.id) ?? {
+                x: 0,
+                y: 0,
+              };
 
             graph.addNode(
               node.id,
               {
                 label:
                   node.label,
-                x: Math.cos(
-                  angle,
-                ),
-                y: Math.sin(
-                  angle,
-                ),
+                x: position.x,
+                y: position.y,
                 size:
+                  PRODIGY_LIGHT_THEME.node
+                    .baseSize +
+                  node.importance *
                     PRODIGY_LIGHT_THEME.node
-                      .baseSize +
-                    node.importance *
-                      PRODIGY_LIGHT_THEME.node
-                        .importanceStep,
+                      .importanceStep,
                 color:
                   categoryColor(
                     primaryCategory(
@@ -799,6 +1547,48 @@ export function NetworkGraph({
                   ),
                 importance:
                   node.importance,
+                networkCircle:
+                  circle,
+              },
+            );
+          },
+        );
+
+        /*
+         * Every real contact belongs to the user's
+         * ego network, so each Person gets a light
+         * visual connection from the fixed SELF node.
+         * These edges are not stored in PostgreSQL.
+         */
+        data.nodes.forEach(
+          (node) => {
+            const circle =
+              normalizeNetworkCircle(
+                node,
+              );
+
+            graph.addDirectedEdgeWithKey(
+              `${SELF_EDGE_PREFIX}${node.id}`,
+              SELF_NODE_ID,
+              node.id,
+              {
+                label: '',
+                type: 'curved',
+                curvature:
+                  edgeCurvature(
+                    node.id,
+                    circle,
+                  ),
+                isEgo: true,
+                networkCircle:
+                  circle,
+                color:
+                  PRODIGY_LIGHT_THEME.radial
+                    .edgeColors[circle],
+                size:
+                  PRODIGY_LIGHT_THEME.radial
+                    .edgeWidths[circle],
+                weight: 1,
               },
             );
           },
@@ -842,6 +1632,15 @@ export function NetworkGraph({
                     edge.type ??
                     undefined,
 
+                  type: 'curved',
+
+                  curvature:
+                    edgeCurvature(
+                      edge.id,
+                      'MIDDLE',
+                      true,
+                    ),
+
                   size:
                     edge.visualWidth ??
                     automaticWidth,
@@ -865,19 +1664,6 @@ export function NetworkGraph({
           },
         );
 
-        if (graph.order > 1) {
-          forceAtlas2.assign(
-            graph,
-            {
-              iterations: 100,
-              settings:
-                forceAtlas2.inferSettings(
-                  graph,
-                ),
-            },
-          );
-        }
-
         graphRef.current =
           graph;
 
@@ -893,12 +1679,41 @@ export function NetworkGraph({
           {
             renderEdgeLabels:
               showEdgeLabels,
+
+            edgeProgramClasses: {
+              curved:
+                EdgeCurveProgram,
+            },
+
+            defaultEdgeType:
+              'curved',
+
+            labelFont:
+              'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+
+            labelSize: 12,
+
+            labelWeight: '500',
+
+            labelColor: {
+              color:
+                PRODIGY_LIGHT_THEME.text
+                  .primary,
+            },
+
             zIndex: true,
           },
         );
 
         sigmaRef.current =
           renderer;
+
+        disposeProdigyLayer =
+          installProdigyVisualLayer(
+            renderer,
+            containerRef.current,
+            graphStyleRef.current,
+          );
 
         renderer.on(
           'clickNode',
@@ -960,6 +1775,7 @@ export function NetworkGraph({
     loadGraph();
 
     return () => {
+      disposeProdigyLayer?.();
       renderer?.kill();
 
       sigmaRef.current =
@@ -1347,6 +2163,8 @@ export function NetworkGraph({
               flex: 1,
               minHeight: 0,
               width: '100%',
+              position: 'relative',
+              overflow: 'hidden',
             }}
           />
         )}
@@ -1366,6 +2184,21 @@ export function NetworkGraph({
           <h2>
             {selectedNode.label}
           </h2>
+
+          <p
+            style={{
+              color:
+                PRODIGY_LIGHT_THEME.text
+                  .secondary,
+            }}
+          >
+            Network circle:{' '}
+            {circleLabel(
+              normalizeNetworkCircle(
+                selectedNode,
+              ),
+            )}
+          </p>
 
           {selectedNode.nickname && (
             <p>
