@@ -34,16 +34,24 @@ export class TelegramAdapter implements MessageAdapter {
   ): boolean {
     return (
       channel.platform === this.platform &&
-      this.botToken.length > 0 &&
-      Boolean(channel.externalId?.trim())
+      this.canSendToChat(
+        channel.externalId?.trim() ?? '',
+      )
     );
   }
 
-  async send(
-    channel: ContactChannel,
+  canSendToChat(chatId: string): boolean {
+    return (
+      this.botToken.length > 0 &&
+      chatId.trim().length > 0
+    );
+  }
+
+  async sendToChat(
+    chatId: string,
     message: OutboundMessage,
-  ): Promise<MessageResult> {
-    const chatId = channel.externalId?.trim();
+  ): Promise<string | null> {
+    const normalizedChatId = chatId.trim();
 
     if (!this.botToken) {
       throw new Error(
@@ -51,7 +59,7 @@ export class TelegramAdapter implements MessageAdapter {
       );
     }
 
-    if (!chatId) {
+    if (!normalizedChatId) {
       throw new Error(
         'Telegram chat ID is missing.',
       );
@@ -70,7 +78,7 @@ export class TelegramAdapter implements MessageAdapter {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: chatId,
+          chat_id: normalizedChatId,
           text: message.text,
         }),
         signal: AbortSignal.timeout(10_000),
@@ -110,6 +118,20 @@ export class TelegramAdapter implements MessageAdapter {
       );
     }
 
+    return payload.result?.message_id != null
+      ? String(payload.result.message_id)
+      : null;
+  }
+
+  async send(
+    channel: ContactChannel,
+    message: OutboundMessage,
+  ): Promise<MessageResult> {
+    const chatId = channel.externalId?.trim() ?? '';
+
+    const providerMessageId =
+      await this.sendToChat(chatId, message);
+
     return {
       status: MessageRoutingStatus.SENT,
       personId: channel.personId,
@@ -119,10 +141,7 @@ export class TelegramAdapter implements MessageAdapter {
       address: channel.address,
       externalId: channel.externalId,
       profileUrl: channel.profileUrl,
-      providerMessageId:
-        payload.result?.message_id != null
-          ? String(payload.result.message_id)
-          : null,
+      providerMessageId,
       preparedText: message.text,
       subject: message.subject,
       reason:

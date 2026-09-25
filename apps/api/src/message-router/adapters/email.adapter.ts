@@ -24,6 +24,11 @@ type EmailConfig = {
   from: string;
 };
 
+type EmailSendResult = {
+  providerMessageId: string | null;
+  subject: string;
+};
+
 @Injectable()
 export class EmailAdapter implements MessageAdapter {
   readonly platform = ContactPlatform.EMAIL;
@@ -31,22 +36,29 @@ export class EmailAdapter implements MessageAdapter {
   canSendAutomatically(
     channel: ContactChannel,
   ): boolean {
-    const config = this.getConfig();
-    const address = channel.address?.trim() ?? '';
-
     return (
       channel.platform === this.platform &&
-      this.isConfigValid(config) &&
-      this.isValidEmail(address)
+      this.canSendToAddress(
+        channel.address?.trim() ?? '',
+      )
     );
   }
 
-  async send(
-    channel: ContactChannel,
-    message: OutboundMessage,
-  ): Promise<MessageResult> {
+  canSendToAddress(address: string): boolean {
     const config = this.getConfig();
-    const address = channel.address?.trim() ?? '';
+
+    return (
+      this.isConfigValid(config) &&
+      this.isValidEmail(address.trim())
+    );
+  }
+
+  async sendToAddress(
+    address: string,
+    message: OutboundMessage,
+  ): Promise<EmailSendResult> {
+    const config = this.getConfig();
+    const normalizedAddress = address.trim();
 
     if (!this.isConfigValid(config)) {
       throw new Error(
@@ -54,7 +66,7 @@ export class EmailAdapter implements MessageAdapter {
       );
     }
 
-    if (!this.isValidEmail(address)) {
+    if (!this.isValidEmail(normalizedAddress)) {
       throw new Error(
         'Email destination address is missing or invalid.',
       );
@@ -86,7 +98,7 @@ export class EmailAdapter implements MessageAdapter {
     try {
       const info = await transporter.sendMail({
         from: config.from,
-        to: address,
+        to: normalizedAddress,
         subject,
         text: message.text,
       });
@@ -108,6 +120,21 @@ export class EmailAdapter implements MessageAdapter {
     }
 
     return {
+      providerMessageId,
+      subject,
+    };
+  }
+
+  async send(
+    channel: ContactChannel,
+    message: OutboundMessage,
+  ): Promise<MessageResult> {
+    const result = await this.sendToAddress(
+      channel.address?.trim() ?? '',
+      message,
+    );
+
+    return {
       status: MessageRoutingStatus.SENT,
       personId: channel.personId,
       channelId: channel.id,
@@ -116,9 +143,10 @@ export class EmailAdapter implements MessageAdapter {
       address: channel.address,
       externalId: channel.externalId,
       profileUrl: channel.profileUrl,
-      providerMessageId,
+      providerMessageId:
+        result.providerMessageId,
       preparedText: message.text,
-      subject,
+      subject: result.subject,
       reason:
         'Message sent automatically via Email.',
     };

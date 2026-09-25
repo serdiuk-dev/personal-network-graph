@@ -34,6 +34,10 @@ import { MessageRouterService } from './message-router.service';
       ],
     },
   ],
-  exports: [MessageRouterService],
+  exports: [
+    MessageRouterService,
+    TelegramAdapter,
+    EmailAdapter,
+  ],
 })
 export class MessageRouterModule {}

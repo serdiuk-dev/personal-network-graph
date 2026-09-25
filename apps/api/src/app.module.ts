@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { AnalyticsModule } from './analytics/analytics.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -10,11 +11,14 @@ import { InterestsModule } from './interests/interests.module';
 import { PeopleModule } from './people/people.module';
 import { PrismaModule } from './prisma.module';
 import { RelationshipsModule } from './relationships/relationships.module';
+import { ReminderModule } from './reminders/reminder.module';
 import { MessageRouterModule } from './message-router/message-router.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     MessageRouterModule,
+    ReminderModule,
     PrismaModule,
     PeopleModule,
     RelationshipsModule,

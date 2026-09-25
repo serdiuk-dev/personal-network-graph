@@ -34,6 +34,7 @@ model Person {
   categories      PersonCategory[]
   interests       PersonInterest[]
   contactChannels ContactChannel[]
+  contactEvents    ContactEvent[]
 
   outgoingRelationships Relationship[] @relation("RelationshipFrom")
   incomingRelationships Relationship[] @relation("RelationshipTo")
@@ -173,4 +174,67 @@ innerRingColor   String @default("#7dd3fc")
   relationshipInactiveWidth   Float  @default(0.45)
 
   updatedAt DateTime @updatedAt
+}
+
+enum ReminderDeliveryChannel {
+  TELEGRAM
+  EMAIL
+}
+
+enum ReminderDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+model ContactEvent {
+  id        String   @id @default(uuid())
+  personId  String
+  type      String
+  title     String
+  eventAt   DateTime?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  person    Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+  reminders Reminder[]
+
+  @@index([personId])
+  @@index([eventAt])
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  eventId     String
+  dueAt       DateTime
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event      ContactEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  deliveries ReminderDelivery[]
+
+  @@index([eventId])
+  @@index([dueAt])
+}
+
+model ReminderDelivery {
+  id                String                 @id @default(uuid())
+  reminderId        String
+  channel           ReminderDeliveryChannel
+  status            ReminderDeliveryStatus @default(PENDING)
+  attemptedAt       DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  failureReason     String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@unique([reminderId, channel])
+  @@index([status])
+  @@index([reminderId, status])
 }
