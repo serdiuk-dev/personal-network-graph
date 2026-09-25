@@ -16,6 +16,7 @@ type Person = {
   notes: string | null;
   importance: number;
   networkCircle: 'INNER' | 'MIDDLE' | 'OUTER';
+  primaryTag: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,6 +34,7 @@ type PersonForm = {
   notes: string;
   importance: number;
   networkCircle: 'INNER' | 'MIDDLE' | 'OUTER';
+  primaryTag: string;
 };
 
 const emptyForm: PersonForm = {
@@ -48,6 +50,7 @@ const emptyForm: PersonForm = {
   notes: '',
   importance: 1,
   networkCircle: 'MIDDLE',
+  primaryTag: '',
 };
 
 type PeopleManagerProps = {
@@ -118,6 +121,7 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
       notes: person.notes ?? '',
       importance: person.importance,
       networkCircle: person.networkCircle ?? 'MIDDLE',
+      primaryTag: person.primaryTag ?? '',
     });
 
     window.scrollTo({
@@ -165,6 +169,7 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
         : {}),
       importance: Number(form.importance),
       networkCircle: form.networkCircle,
+      primaryTag: form.primaryTag.trim() || null,
     };
 
     try {
@@ -388,6 +393,21 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
               Outer — distant circle
             </option>
           </select>
+        </label>
+
+        <label>
+          Primary tag
+          <input
+            value={form.primaryTag}
+            maxLength={80}
+            placeholder="Family / Art / Cybersecurity"
+            onChange={(event) =>
+              updateField(
+                'primaryTag',
+                event.target.value,
+              )
+            }
+          />
         </label>
 
         <textarea

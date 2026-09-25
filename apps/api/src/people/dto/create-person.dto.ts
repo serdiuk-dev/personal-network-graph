@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -59,4 +60,9 @@ export class CreatePersonDto {
   @IsOptional()
   @IsIn(['INNER', 'MIDDLE', 'OUTER'])
   networkCircle?: 'INNER' | 'MIDDLE' | 'OUTER';
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  primaryTag?: string | null;
+
 }

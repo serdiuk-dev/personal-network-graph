@@ -27,6 +27,7 @@ model Person {
   notes      String?
   importance    Int           @default(1)
   networkCircle NetworkCircle @default(MIDDLE)
+  primaryTag    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

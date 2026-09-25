@@ -32,6 +32,7 @@ type GraphNode = {
   country: string | null;
   importance: number;
   networkCircle: 'INNER' | 'MIDDLE' | 'OUTER';
+  primaryTag: string | null;
   categories: TaxonomyItem[];
   interests: TaxonomyItem[];
 };
@@ -142,6 +143,45 @@ function primaryCategory(node: GraphNode) {
   return [...node.categories].sort((a, b) =>
     a.name.localeCompare(b.name),
   )[0].name;
+}
+
+
+function primaryTagLabel(
+  node: GraphNode,
+) {
+  const explicit =
+    node.primaryTag?.trim();
+
+  if (explicit) {
+    return explicit;
+  }
+
+  const category =
+    primaryCategory(node);
+
+  if (category) {
+    return category;
+  }
+
+  if (node.interests.length === 0) {
+    return null;
+  }
+
+  return [...node.interests]
+    .sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )[0].name;
+}
+
+function personDisplayLabel(
+  node: GraphNode,
+) {
+  const tag =
+    primaryTagLabel(node);
+
+  return tag
+    ? `${node.label}  ·  ${tag}`
+    : node.label;
 }
 
 type NetworkCircle =
@@ -887,13 +927,11 @@ export function NetworkGraph({
             roleSizeBonus;
 
           const displayLabel =
-            person.label;
+            personDisplayLabel(
+              person,
+            );
 
-          const showOverviewLabel =
-            person.importance >=
-              PRODIGY_LIGHT_THEME.node
-                .overviewLabelMinImportance ||
-            specialRole;
+          const showOverviewLabel = true;
 
           /*
            * Overview mode:
@@ -1530,7 +1568,10 @@ export function NetworkGraph({
               node.id,
               {
                 label:
-                  node.label,
+                  personDisplayLabel(
+                    node,
+                  ),
+                forceLabel: true,
                 x: position.x,
                 y: position.y,
                 size:
@@ -1691,9 +1732,12 @@ export function NetworkGraph({
             labelFont:
               'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
 
-            labelSize: 12,
+            labelSize: 14,
 
-            labelWeight: '500',
+            labelRenderedSizeThreshold:
+              0,
+
+            labelWeight: '600',
 
             labelColor: {
               color:
