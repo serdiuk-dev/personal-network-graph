@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 export enum MessageMode {
@@ -14,6 +15,12 @@ export class SendMessageDto {
   @IsString()
   @IsNotEmpty()
   text!: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  subject?: string;
 
   @IsOptional()
   @IsEnum(MessageMode)

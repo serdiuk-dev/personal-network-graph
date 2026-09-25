@@ -13,6 +13,7 @@ import { ManualAdapter } from './adapters/manual.adapter';
 import {
   MESSAGE_ADAPTERS,
   MessageAdapter,
+  OutboundMessage,
 } from './contracts/message-adapter.interface';
 import {
   MessageResult,
@@ -48,6 +49,13 @@ export class MessageRouterService {
       );
     }
 
+    const message: OutboundMessage = {
+      text: dto.text,
+      ...(dto.subject?.trim()
+        ? { subject: dto.subject.trim() }
+        : {}),
+    };
+
     const channels = await this.prisma.contactChannel.findMany({
       where: {
         personId,
@@ -65,7 +73,8 @@ export class MessageRouterService {
       return {
         status: MessageRoutingStatus.NO_CHANNEL,
         personId,
-        preparedText: dto.text,
+        preparedText: message.text,
+        subject: message.subject,
         reason: 'No active contact channels are available.',
       };
     }
@@ -77,7 +86,7 @@ export class MessageRouterService {
     if (mode === MessageMode.MANUAL_ONLY) {
       return this.manualAdapter.prepare(
         primaryChannel,
-        dto.text,
+        message,
         'Manual preparation was requested.',
       );
     }
@@ -112,7 +121,7 @@ export class MessageRouterService {
       try {
         const result = await adapter.send(
           channel,
-          dto.text,
+          message,
         );
 
         if (
@@ -131,7 +140,7 @@ export class MessageRouterService {
 
     return this.manualAdapter.prepare(
       primaryChannel,
-      dto.text,
+      message,
       this.getManualFallbackReason(
         hasAutomationAllowedChannel,
         hasPlatformAdapter,
@@ -146,6 +155,7 @@ export class MessageRouterService {
   ): Promise<MessageResult> {
     return this.sendMessage(personId, {
       text: dto.text,
+      subject: dto.subject,
       mode: MessageMode.MANUAL_ONLY,
     });
   }

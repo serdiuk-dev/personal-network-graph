@@ -7,6 +7,11 @@ import { MessageResult } from './message-result.interface';
 
 export const MESSAGE_ADAPTERS = Symbol('MESSAGE_ADAPTERS');
 
+export interface OutboundMessage {
+  text: string;
+  subject?: string;
+}
+
 export interface MessageAdapter {
   readonly platform: ContactPlatform;
 
@@ -16,6 +21,6 @@ export interface MessageAdapter {
 
   send(
     channel: ContactChannel,
-    message: string,
+    message: OutboundMessage,
   ): Promise<MessageResult>;
 }

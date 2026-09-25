@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../prisma.module';
+import { EmailAdapter } from './adapters/email.adapter';
 import { ManualAdapter } from './adapters/manual.adapter';
 import { TelegramAdapter } from './adapters/telegram.adapter';
 import {
@@ -17,13 +18,19 @@ import { MessageRouterService } from './message-router.service';
     MessageRouterService,
     ManualAdapter,
     TelegramAdapter,
+    EmailAdapter,
     {
       provide: MESSAGE_ADAPTERS,
-      inject: [TelegramAdapter],
+      inject: [
+        TelegramAdapter,
+        EmailAdapter,
+      ],
       useFactory: (
         telegramAdapter: TelegramAdapter,
+        emailAdapter: EmailAdapter,
       ): MessageAdapter[] => [
         telegramAdapter,
+        emailAdapter,
       ],
     },
   ],

@@ -18,6 +18,8 @@ export interface MessageResult {
   address?: string | null;
   externalId?: string | null;
   profileUrl?: string | null;
+  providerMessageId?: string | null;
   preparedText?: string;
+  subject?: string;
   reason: string;
 }

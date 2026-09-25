@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ContactChannel } from '@prisma/client';
 
+import { OutboundMessage } from '../contracts/message-adapter.interface';
 import {
   MessageResult,
   MessageRoutingStatus,
@@ -10,7 +11,7 @@ import {
 export class ManualAdapter {
   async prepare(
     channel: ContactChannel,
-    message: string,
+    message: OutboundMessage,
     reason: string,
   ): Promise<MessageResult> {
     return {
@@ -22,7 +23,8 @@ export class ManualAdapter {
       address: channel.address,
       externalId: channel.externalId,
       profileUrl: channel.profileUrl,
-      preparedText: message,
+      preparedText: message.text,
+      subject: message.subject,
       reason,
     };
   }

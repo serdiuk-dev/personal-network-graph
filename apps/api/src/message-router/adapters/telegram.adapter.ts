@@ -4,7 +4,10 @@ import {
   ContactPlatform,
 } from '@prisma/client';
 
-import { MessageAdapter } from '../contracts/message-adapter.interface';
+import {
+  MessageAdapter,
+  OutboundMessage,
+} from '../contracts/message-adapter.interface';
 import {
   MessageResult,
   MessageRoutingStatus,
@@ -38,7 +41,7 @@ export class TelegramAdapter implements MessageAdapter {
 
   async send(
     channel: ContactChannel,
-    message: string,
+    message: OutboundMessage,
   ): Promise<MessageResult> {
     const chatId = channel.externalId?.trim();
 
@@ -68,7 +71,7 @@ export class TelegramAdapter implements MessageAdapter {
         },
         body: JSON.stringify({
           chat_id: chatId,
-          text: message,
+          text: message.text,
         }),
         signal: AbortSignal.timeout(10_000),
       });
@@ -116,7 +119,12 @@ export class TelegramAdapter implements MessageAdapter {
       address: channel.address,
       externalId: channel.externalId,
       profileUrl: channel.profileUrl,
-      preparedText: message,
+      providerMessageId:
+        payload.result?.message_id != null
+          ? String(payload.result.message_id)
+          : null,
+      preparedText: message.text,
+      subject: message.subject,
       reason:
         'Message sent automatically via Telegram.',
     };
