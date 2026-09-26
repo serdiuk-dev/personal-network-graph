@@ -205,6 +205,39 @@ export class ReminderService {
     });
   }
 
+  async findUpcoming() {
+    return this.prisma.reminder.findMany({
+      where: {
+        completedAt: null,
+        dueAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        dueAt: 'asc',
+      },
+      take: 100,
+      include: {
+        event: {
+          include: {
+            person: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        deliveries: {
+          orderBy: {
+            channel: 'asc',
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: string) {
     const reminder =
       await this.prisma.reminder.findUnique({

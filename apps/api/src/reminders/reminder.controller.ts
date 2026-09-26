@@ -53,6 +53,11 @@ export class ReminderController {
     return this.reminderService.updateReminder(id, dto);
   }
 
+  @Get('reminders/upcoming')
+  findUpcoming() {
+    return this.reminderService.findUpcoming();
+  }
+
   @Get('reminders/:id')
   findOne(
     @Param('id') id: string,

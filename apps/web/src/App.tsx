@@ -3,6 +3,7 @@ import { NetworkGraph } from './components/NetworkGraph';
 import { NetworkOverview } from './components/NetworkOverview';
 import { PeopleManager } from './components/PeopleManager';
 import { RelationshipsManager } from './components/RelationshipsManager';
+import { RemindersDashboard } from './components/RemindersDashboard';
 import { RelationshipStyleManager } from './components/RelationshipStyleManager';
 import { GraphStyleManager } from './components/GraphStyleManager';
 import { TaxonomyManager } from './components/TaxonomyManager';
@@ -11,6 +12,7 @@ type View =
   | 'graph'
   | 'overview'
   | 'people'
+  | 'reminders'
   | 'relationships'
   | 'edgeStyles'
   | 'graphStyles'
@@ -75,6 +77,14 @@ function App() {
 
         <button
           type="button"
+          onClick={() => setView('reminders')}
+          disabled={view === 'reminders'}
+        >
+          Reminders
+        </button>
+
+        <button
+          type="button"
           onClick={() => setView('relationships')}
           disabled={view === 'relationships'}
         >
@@ -125,6 +135,10 @@ function App() {
 
         {view === 'people' && (
           <PeopleManager onChanged={notifyGraphChanged} />
+        )}
+
+        {view === 'reminders' && (
+          <RemindersDashboard />
         )}
 
         {view === 'relationships' && (
