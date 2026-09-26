@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -11,6 +12,8 @@ import {
 
 import { PrismaService } from '../prisma.service';
 import { CreateContactEventReminderDto } from './dto/create-contact-event-reminder.dto';
+import { UpdateContactEventDto } from './dto/update-contact-event.dto';
+import { UpdateReminderDto } from './dto/update-reminder.dto';
 import { NotificationService } from './notification.service';
 
 @Injectable()
@@ -85,6 +88,117 @@ export class ReminderService {
                 channel: 'asc',
               },
             },
+          },
+        },
+      },
+    });
+  }
+
+  async updateEvent(
+    id: string,
+    dto: UpdateContactEventDto,
+  ) {
+    const event = await this.prisma.contactEvent.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException(
+        `ContactEvent ${id} not found`,
+      );
+    }
+
+    const hasChanges =
+      dto.type !== undefined ||
+      dto.title !== undefined ||
+      dto.eventAt !== undefined ||
+      dto.note !== undefined;
+
+    if (!hasChanges) {
+      throw new BadRequestException(
+        'At least one contact event field must be provided',
+      );
+    }
+
+    return this.prisma.contactEvent.update({
+      where: { id },
+      data: {
+        ...(dto.type !== undefined
+          ? { type: dto.type.trim() }
+          : {}),
+        ...(dto.title !== undefined
+          ? { title: dto.title.trim() }
+          : {}),
+        ...(dto.eventAt !== undefined
+          ? {
+              eventAt: dto.eventAt
+                ? new Date(dto.eventAt)
+                : null,
+            }
+          : {}),
+        ...(dto.note !== undefined
+          ? { note: dto.note?.trim() || null }
+          : {}),
+      },
+      include: {
+        reminders: {
+          orderBy: {
+            dueAt: 'asc',
+          },
+          include: {
+            deliveries: {
+              orderBy: {
+                channel: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async updateReminder(
+    id: string,
+    dto: UpdateReminderDto,
+  ) {
+    const reminder = await this.prisma.reminder.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        completedAt: true,
+        _count: {
+          select: {
+            deliveries: true,
+          },
+        },
+      },
+    });
+
+    if (!reminder) {
+      throw new NotFoundException(
+        `Reminder ${id} not found`,
+      );
+    }
+
+    if (
+      reminder.completedAt ||
+      reminder._count.deliveries > 0
+    ) {
+      throw new ConflictException(
+        `Reminder ${id} has already started delivery and cannot be rescheduled`,
+      );
+    }
+
+    return this.prisma.reminder.update({
+      where: { id },
+      data: {
+        dueAt: new Date(dto.dueAt),
+      },
+      include: {
+        deliveries: {
+          orderBy: {
+            channel: 'asc',
           },
         },
       },

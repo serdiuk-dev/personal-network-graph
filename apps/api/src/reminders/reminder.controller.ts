@@ -4,10 +4,13 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
 } from '@nestjs/common';
 
 import { CreateContactEventReminderDto } from './dto/create-contact-event-reminder.dto';
+import { UpdateContactEventDto } from './dto/update-contact-event.dto';
+import { UpdateReminderDto } from './dto/update-reminder.dto';
 import { ReminderService } from './reminder.service';
 
 @Controller()
@@ -32,6 +35,22 @@ export class ReminderController {
     @Param('personId') personId: string,
   ) {
     return this.reminderService.findByPerson(personId);
+  }
+
+  @Patch('contact-events/:id')
+  updateEvent(
+    @Param('id') id: string,
+    @Body() dto: UpdateContactEventDto,
+  ) {
+    return this.reminderService.updateEvent(id, dto);
+  }
+
+  @Patch('reminders/:id')
+  updateReminder(
+    @Param('id') id: string,
+    @Body() dto: UpdateReminderDto,
+  ) {
+    return this.reminderService.updateReminder(id, dto);
   }
 
   @Get('reminders/:id')
