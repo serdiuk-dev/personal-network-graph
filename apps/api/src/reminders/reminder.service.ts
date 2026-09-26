@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -55,6 +56,41 @@ export class ReminderService {
     });
   }
 
+  async findByPerson(personId: string) {
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true },
+    });
+
+    if (!person) {
+      throw new NotFoundException(
+        `Person ${personId} not found`,
+      );
+    }
+
+    return this.prisma.contactEvent.findMany({
+      where: { personId },
+      orderBy: [
+        { eventAt: 'asc' },
+        { createdAt: 'desc' },
+      ],
+      include: {
+        reminders: {
+          orderBy: {
+            dueAt: 'asc',
+          },
+          include: {
+            deliveries: {
+              orderBy: {
+                channel: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: string) {
     const reminder =
       await this.prisma.reminder.findUnique({
@@ -82,6 +118,38 @@ export class ReminderService {
     return reminder;
   }
 
+  async removeReminder(id: string) {
+    const reminder =
+      await this.prisma.reminder.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+    if (!reminder) {
+      throw new NotFoundException(
+        `Reminder ${id} not found`,
+      );
+    }
+
+    const processingDeliveries =
+      await this.prisma.reminderDelivery.count({
+        where: {
+          reminderId: id,
+          status: ReminderDeliveryStatus.PROCESSING,
+        },
+      });
+
+    if (processingDeliveries > 0) {
+      throw new ConflictException(
+        `Reminder ${id} is currently processing`,
+      );
+    }
+
+    return this.prisma.reminder.delete({
+      where: { id },
+    });
+  }
+
   async removeEvent(id: string) {
     const event =
       await this.prisma.contactEvent.findUnique({
@@ -92,6 +160,22 @@ export class ReminderService {
     if (!event) {
       throw new NotFoundException(
         `ContactEvent ${id} not found`,
+      );
+    }
+
+    const processingDeliveries =
+      await this.prisma.reminderDelivery.count({
+        where: {
+          reminder: {
+            eventId: id,
+          },
+          status: ReminderDeliveryStatus.PROCESSING,
+        },
+      });
+
+    if (processingDeliveries > 0) {
+      throw new ConflictException(
+        `ContactEvent ${id} has a reminder currently processing`,
       );
     }
 

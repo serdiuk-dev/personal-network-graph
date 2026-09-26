@@ -27,11 +27,25 @@ export class ReminderController {
     );
   }
 
+  @Get('people/:personId/contact-events')
+  findByPerson(
+    @Param('personId') personId: string,
+  ) {
+    return this.reminderService.findByPerson(personId);
+  }
+
   @Get('reminders/:id')
   findOne(
     @Param('id') id: string,
   ) {
     return this.reminderService.findOne(id);
+  }
+
+  @Delete('reminders/:id')
+  removeReminder(
+    @Param('id') id: string,
+  ) {
+    return this.reminderService.removeReminder(id);
   }
 
   @Delete('contact-events/:id')

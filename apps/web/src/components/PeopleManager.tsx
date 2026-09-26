@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { ContactChannelsManager } from './ContactChannelsManager';
+import { ContactEventsManager } from './ContactEventsManager';
 import { PersonTaxonomyManager } from './PersonTaxonomyManager';
 
 type Person = {
@@ -63,6 +64,7 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [taxonomyPersonId, setTaxonomyPersonId] = useState<string | null>(null);
   const [contactChannelsPersonId, setContactChannelsPersonId] = useState<string | null>(null);
+  const [contactEventsPersonId, setContactEventsPersonId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -539,6 +541,15 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
 
                     <button
                       type="button"
+                      onClick={() => setContactEventsPersonId(person.id)}
+                    >
+                      Events / Reminders
+                    </button>
+
+                    {' '}
+
+                    <button
+                      type="button"
                       onClick={() => setTaxonomyPersonId(person.id)}
                     >
                       Categories / Interests
@@ -557,6 +568,13 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
           onClose={() =>
             setContactChannelsPersonId(null)
           }
+        />
+      )}
+
+      {contactEventsPersonId && (
+        <ContactEventsManager
+          personId={contactEventsPersonId}
+          onClose={() => setContactEventsPersonId(null)}
         />
       )}
 
