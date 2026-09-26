@@ -435,9 +435,9 @@ function installProdigyVisualLayer(
     NetworkCircle,
     string
   > = {
-    INNER: 'CLOSE',
-    MIDDLE: 'REGULAR',
-    OUTER: 'DISTANT',
+    INNER: 'HEALING',
+    MIDDLE: 'PRODUCTIVITY',
+    OUTER: 'EVOLUTION',
   };
 
   const rings =
