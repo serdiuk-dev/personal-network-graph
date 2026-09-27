@@ -5,7 +5,7 @@ type ReminderDelivery = {
   status: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
 };
 
-type UpcomingReminder = {
+type ReminderItem = {
   id: string;
   dueAt: string;
   completedAt: string | null;
@@ -24,13 +24,19 @@ type UpcomingReminder = {
   };
 };
 
+type ReminderView = 'upcoming' | 'history';
+
 export function RemindersDashboard() {
-  const [reminders, setReminders] = useState<UpcomingReminder[]>([]);
+  const [view, setView] = useState<ReminderView>('upcoming');
+  const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadReminders(showLoading = false) {
+  async function loadReminders(
+    targetView: ReminderView,
+    showLoading = false,
+  ) {
     if (showLoading) {
       setLoading(true);
     } else {
@@ -40,7 +46,12 @@ export function RemindersDashboard() {
     setError(null);
 
     try {
-      const response = await fetch('/api/v1/reminders/upcoming');
+      const endpoint =
+        targetView === 'upcoming'
+          ? '/api/v1/reminders/upcoming'
+          : '/api/v1/reminders/history';
+
+      const response = await fetch(endpoint);
 
       if (!response.ok) {
         throw new Error(
@@ -62,11 +73,11 @@ export function RemindersDashboard() {
   }
 
   useEffect(() => {
-    void loadReminders(true);
-  }, []);
+    void loadReminders(view, true);
+  }, [view]);
 
   function status(
-    reminder: UpcomingReminder,
+    reminder: ReminderItem,
     channel: 'TELEGRAM' | 'EMAIL',
   ) {
     return (
@@ -76,6 +87,12 @@ export function RemindersDashboard() {
     );
   }
 
+  function switchView(nextView: ReminderView) {
+    if (nextView !== view) {
+      setView(nextView);
+    }
+  }
+
   if (loading) {
     return (
       <main style={{ padding: '24px', fontFamily: 'sans-serif' }}>
@@ -83,6 +100,8 @@ export function RemindersDashboard() {
       </main>
     );
   }
+
+  const isUpcoming = view === 'upcoming';
 
   return (
     <main
@@ -99,26 +118,51 @@ export function RemindersDashboard() {
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '16px',
-          marginBottom: '20px',
+          marginBottom: '16px',
         }}
       >
         <div>
           <h1 style={{ marginBottom: '6px' }}>
-            Upcoming Reminders
+            Reminders
           </h1>
 
           <div style={{ color: '#666' }}>
-            {reminders.length} upcoming reminder
-            {reminders.length === 1 ? '' : 's'}
+            {isUpcoming
+              ? 'Upcoming reminders across all people'
+              : 'Completed reminder delivery history'}
           </div>
         </div>
 
         <button
           type="button"
           disabled={refreshing}
-          onClick={() => void loadReminders()}
+          onClick={() => void loadReminders(view)}
         >
           {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '20px',
+        }}
+      >
+        <button
+          type="button"
+          disabled={view === 'upcoming'}
+          onClick={() => switchView('upcoming')}
+        >
+          Upcoming
+        </button>
+
+        <button
+          type="button"
+          disabled={view === 'history'}
+          onClick={() => switchView('history')}
+        >
+          History
         </button>
       </div>
 
@@ -128,8 +172,18 @@ export function RemindersDashboard() {
         </p>
       )}
 
+      <div style={{ color: '#666', marginBottom: '16px' }}>
+        {reminders.length}{' '}
+        {isUpcoming ? 'upcoming' : 'completed'} reminder
+        {reminders.length === 1 ? '' : 's'}
+      </div>
+
       {reminders.length === 0 ? (
-        <p>No upcoming reminders.</p>
+        <p>
+          {isUpcoming
+            ? 'No upcoming reminders.'
+            : 'No reminder history yet.'}
+        </p>
       ) : (
         <div
           style={{
@@ -179,6 +233,15 @@ export function RemindersDashboard() {
                       ).toLocaleString()}
                     </div>
 
+                    {reminder.completedAt && (
+                      <div>
+                        Completed:{' '}
+                        {new Date(
+                          reminder.completedAt,
+                        ).toLocaleString()}
+                      </div>
+                    )}
+
                     {reminder.event.eventAt && (
                       <div>
                         Event:{' '}
@@ -195,11 +258,7 @@ export function RemindersDashboard() {
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      minWidth: '170px',
-                    }}
-                  >
+                  <div style={{ minWidth: '170px' }}>
                     <div>
                       Telegram:{' '}
                       {status(reminder, 'TELEGRAM')}

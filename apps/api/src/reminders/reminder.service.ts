@@ -238,6 +238,38 @@ export class ReminderService {
     });
   }
 
+  async findHistory() {
+    return this.prisma.reminder.findMany({
+      where: {
+        completedAt: {
+          not: null,
+        },
+      },
+      orderBy: {
+        completedAt: 'desc',
+      },
+      take: 100,
+      include: {
+        event: {
+          include: {
+            person: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        deliveries: {
+          orderBy: {
+            channel: 'asc',
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: string) {
     const reminder =
       await this.prisma.reminder.findUnique({

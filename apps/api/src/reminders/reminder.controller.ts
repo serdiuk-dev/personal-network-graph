@@ -58,6 +58,11 @@ export class ReminderController {
     return this.reminderService.findUpcoming();
   }
 
+  @Get('reminders/history')
+  findHistory() {
+    return this.reminderService.findHistory();
+  }
+
   @Get('reminders/:id')
   findOne(
     @Param('id') id: string,
