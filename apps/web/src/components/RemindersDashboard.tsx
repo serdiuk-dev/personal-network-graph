@@ -52,6 +52,13 @@ export function RemindersDashboard({
     useState<StatusFilter>('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [editingReminderId, setEditingReminderId] =
+    useState<string | null>(null);
+  const [editDueAt, setEditDueAt] = useState('');
+  const [updatingReminderId, setUpdatingReminderId] =
+    useState<string | null>(null);
+  const [deletingReminderId, setDeletingReminderId] =
+    useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function loadReminders(
@@ -110,7 +117,109 @@ export function RemindersDashboard({
 
   function switchView(nextView: ReminderView) {
     if (nextView !== view) {
+      setEditingReminderId(null);
+      setEditDueAt('');
       setView(nextView);
+    }
+  }
+
+  function toLocalDateTimeInput(value: string) {
+    const date = new Date(value);
+    const offset = date.getTimezoneOffset() * 60_000;
+
+    return new Date(date.getTime() - offset)
+      .toISOString()
+      .slice(0, 16);
+  }
+
+  function beginEditReminder(reminder: ReminderItem) {
+    setEditingReminderId(reminder.id);
+    setEditDueAt(toLocalDateTimeInput(reminder.dueAt));
+    setError(null);
+  }
+
+  function cancelEditReminder() {
+    setEditingReminderId(null);
+    setEditDueAt('');
+  }
+
+  async function updateReminder(id: string) {
+    if (updatingReminderId || !editDueAt) {
+      return;
+    }
+
+    setUpdatingReminderId(id);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/v1/reminders/${id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dueAt: new Date(editDueAt).toISOString(),
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Reschedule failed: HTTP ${response.status}`,
+        );
+      }
+
+      cancelEditReminder();
+      await loadReminders(view);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to reschedule reminder',
+      );
+    } finally {
+      setUpdatingReminderId(null);
+    }
+  }
+
+  async function deleteReminder(id: string) {
+    if (
+      deletingReminderId ||
+      !window.confirm('Delete reminder?')
+    ) {
+      return;
+    }
+
+    setDeletingReminderId(id);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `/api/v1/reminders/${id}`,
+        { method: 'DELETE' },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Delete reminder failed: HTTP ${response.status}`,
+        );
+      }
+
+      if (editingReminderId === id) {
+        cancelEditReminder();
+      }
+
+      await loadReminders(view);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to delete reminder',
+      );
+    } finally {
+      setDeletingReminderId(null);
     }
   }
 
@@ -319,6 +428,11 @@ export function RemindersDashboard({
                 reminder.event.person.lastName ?? ''
               }`.trim();
 
+            const canReschedule =
+              isUpcoming &&
+              !reminder.completedAt &&
+              reminder.deliveries.length === 0;
+
             return (
               <section
                 key={reminder.id}
@@ -411,6 +525,104 @@ export function RemindersDashboard({
                       Email:{' '}
                       {status(reminder, 'EMAIL')}
                     </div>
+
+                    {isUpcoming && (
+                      <div style={{ marginTop: '12px' }}>
+                        {editingReminderId === reminder.id ? (
+                          <div
+                            style={{
+                              display: 'grid',
+                              gap: '8px',
+                            }}
+                          >
+                            <label>
+                              Reminder due
+                              <input
+                                required
+                                type="datetime-local"
+                                value={editDueAt}
+                                disabled={
+                                  updatingReminderId ===
+                                  reminder.id
+                                }
+                                onChange={(event) =>
+                                  setEditDueAt(
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <div>
+                              <button
+                                type="button"
+                                disabled={
+                                  updatingReminderId ===
+                                    reminder.id ||
+                                  !editDueAt
+                                }
+                                onClick={() =>
+                                  void updateReminder(
+                                    reminder.id,
+                                  )
+                                }
+                              >
+                                {updatingReminderId ===
+                                reminder.id
+                                  ? 'Saving...'
+                                  : 'Save reminder'}
+                              </button>{' '}
+
+                              <button
+                                type="button"
+                                disabled={
+                                  updatingReminderId ===
+                                  reminder.id
+                                }
+                                onClick={cancelEditReminder}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              disabled={!canReschedule}
+                              title={
+                                canReschedule
+                                  ? 'Change reminder time'
+                                  : 'Delivery already started'
+                              }
+                              onClick={() =>
+                                beginEditReminder(reminder)
+                              }
+                            >
+                              Reschedule
+                            </button>{' '}
+
+                            <button
+                              type="button"
+                              disabled={
+                                deletingReminderId ===
+                                reminder.id
+                              }
+                              onClick={() =>
+                                void deleteReminder(
+                                  reminder.id,
+                                )
+                              }
+                            >
+                              {deletingReminderId ===
+                              reminder.id
+                                ? 'Deleting reminder...'
+                                : 'Delete reminder'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
