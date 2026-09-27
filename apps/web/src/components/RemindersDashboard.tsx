@@ -241,7 +241,7 @@ export function RemindersDashboard({
     ? new Date(`${dateTo}T23:59:59.999`).getTime()
     : null;
 
-  const filteredReminders = reminders.filter(
+  const scopedReminders = reminders.filter(
     (reminder) => {
       const personName =
         `${reminder.event.person.firstName} ${
@@ -279,16 +279,38 @@ export function RemindersDashboard({
         return false;
       }
 
+      return true;
+    },
+  );
+
+  const summaryChannels: ReminderChannel[] =
+    channelFilter === 'ALL'
+      ? ['TELEGRAM', 'EMAIL']
+      : [channelFilter];
+
+  const deliverySummary: Record<ReminderStatus, number> = {
+    PENDING: 0,
+    PROCESSING: 0,
+    SENT: 0,
+    FAILED: 0,
+  };
+
+  for (const reminder of scopedReminders) {
+    for (const channel of summaryChannels) {
+      deliverySummary[status(reminder, channel)] += 1;
+    }
+  }
+
+  const summaryTotal =
+    scopedReminders.length * summaryChannels.length;
+
+  const filteredReminders = scopedReminders.filter(
+    (reminder) => {
       if (statusFilter === 'ALL') {
         return true;
       }
 
-      const channels: ReminderChannel[] =
-        channelFilter === 'ALL'
-          ? ['TELEGRAM', 'EMAIL']
-          : [channelFilter];
-
-      return channels.some(
+      return summaryChannels.some(
         (channel) =>
           status(reminder, channel) === statusFilter,
       );
@@ -372,6 +394,67 @@ export function RemindersDashboard({
         >
           History
         </button>
+      </div>
+
+      <div
+        style={{
+          marginBottom: '16px',
+          padding: '12px',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+        }}
+      >
+        <div
+          style={{
+            marginBottom: '10px',
+            fontWeight: 600,
+          }}
+        >
+          Delivery status summary
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px',
+          }}
+        >
+          {[
+            { label: 'Total', value: summaryTotal },
+            {
+              label: 'Pending',
+              value: deliverySummary.PENDING,
+            },
+            {
+              label: 'Processing',
+              value: deliverySummary.PROCESSING,
+            },
+            {
+              label: 'Sent',
+              value: deliverySummary.SENT,
+            },
+            {
+              label: 'Failed',
+              value: deliverySummary.FAILED,
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              style={{
+                minWidth: '100px',
+                padding: '8px 10px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+              }}
+            >
+              <div style={{ color: '#666' }}>
+                {item.label}
+              </div>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div
@@ -675,7 +758,17 @@ export function RemindersDashboard({
                           )}
 
                           {telegramDelivery.failureReason && (
-                            <div>
+                            <div
+                              role="alert"
+                              style={{
+                                marginTop: '6px',
+                                padding: '6px 8px',
+                                border: '1px solid #b42318',
+                                borderRadius: '6px',
+                                color: '#b42318',
+                                fontWeight: 600,
+                              }}
+                            >
                               Failure:{' '}
                               {telegramDelivery.failureReason}
                             </div>
@@ -725,7 +818,17 @@ export function RemindersDashboard({
                           )}
 
                           {emailDelivery.failureReason && (
-                            <div>
+                            <div
+                              role="alert"
+                              style={{
+                                marginTop: '6px',
+                                padding: '6px 8px',
+                                border: '1px solid #b42318',
+                                borderRadius: '6px',
+                                color: '#b42318',
+                                fontWeight: 600,
+                              }}
+                            >
                               Failure:{' '}
                               {emailDelivery.failureReason}
                             </div>
