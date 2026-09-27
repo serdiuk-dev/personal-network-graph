@@ -10,6 +10,10 @@ type ReminderStatus =
 type ReminderDelivery = {
   channel: ReminderChannel;
   status: ReminderStatus;
+  attemptedAt: string | null;
+  sentAt: string | null;
+  providerMessageId: string | null;
+  failureReason: string | null;
 };
 
 type ReminderItem = {
@@ -524,6 +528,18 @@ export function RemindersDashboard({
                 reminder.event.person.lastName ?? ''
               }`.trim();
 
+            const telegramDelivery =
+              reminder.deliveries.find(
+                (delivery) =>
+                  delivery.channel === 'TELEGRAM',
+              );
+
+            const emailDelivery =
+              reminder.deliveries.find(
+                (delivery) =>
+                  delivery.channel === 'EMAIL',
+              );
+
             const canReschedule =
               isUpcoming &&
               !reminder.completedAt &&
@@ -611,15 +627,111 @@ export function RemindersDashboard({
                     )}
                   </div>
 
-                  <div style={{ minWidth: '170px' }}>
+                  <div
+                    style={{
+                      minWidth: '240px',
+                      display: 'grid',
+                      gap: '12px',
+                    }}
+                  >
                     <div>
-                      Telegram:{' '}
-                      {status(reminder, 'TELEGRAM')}
+                      <div>
+                        <strong>Telegram:</strong>{' '}
+                        {status(reminder, 'TELEGRAM')}
+                      </div>
+
+                      {telegramDelivery && (
+                        <div
+                          style={{
+                            marginTop: '4px',
+                            fontSize: '0.9em',
+                            color: '#555',
+                            overflowWrap: 'anywhere',
+                          }}
+                        >
+                          {telegramDelivery.attemptedAt && (
+                            <div>
+                              Attempted:{' '}
+                              {new Date(
+                                telegramDelivery.attemptedAt,
+                              ).toLocaleString()}
+                            </div>
+                          )}
+
+                          {telegramDelivery.sentAt && (
+                            <div>
+                              Sent:{' '}
+                              {new Date(
+                                telegramDelivery.sentAt,
+                              ).toLocaleString()}
+                            </div>
+                          )}
+
+                          {telegramDelivery.providerMessageId && (
+                            <div>
+                              Provider ID:{' '}
+                              {telegramDelivery.providerMessageId}
+                            </div>
+                          )}
+
+                          {telegramDelivery.failureReason && (
+                            <div>
+                              Failure:{' '}
+                              {telegramDelivery.failureReason}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      Email:{' '}
-                      {status(reminder, 'EMAIL')}
+                      <div>
+                        <strong>Email:</strong>{' '}
+                        {status(reminder, 'EMAIL')}
+                      </div>
+
+                      {emailDelivery && (
+                        <div
+                          style={{
+                            marginTop: '4px',
+                            fontSize: '0.9em',
+                            color: '#555',
+                            overflowWrap: 'anywhere',
+                          }}
+                        >
+                          {emailDelivery.attemptedAt && (
+                            <div>
+                              Attempted:{' '}
+                              {new Date(
+                                emailDelivery.attemptedAt,
+                              ).toLocaleString()}
+                            </div>
+                          )}
+
+                          {emailDelivery.sentAt && (
+                            <div>
+                              Sent:{' '}
+                              {new Date(
+                                emailDelivery.sentAt,
+                              ).toLocaleString()}
+                            </div>
+                          )}
+
+                          {emailDelivery.providerMessageId && (
+                            <div>
+                              Provider ID:{' '}
+                              {emailDelivery.providerMessageId}
+                            </div>
+                          )}
+
+                          {emailDelivery.failureReason && (
+                            <div>
+                              Failure:{' '}
+                              {emailDelivery.failureReason}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {isUpcoming && (
