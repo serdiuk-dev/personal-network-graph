@@ -50,6 +50,9 @@ export function RemindersDashboard({
     useState<ChannelFilter>('ALL');
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>('ALL');
+  const [searchText, setSearchText] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editingReminderId, setEditingReminderId] =
@@ -223,8 +226,55 @@ export function RemindersDashboard({
     }
   }
 
+  const normalizedSearch =
+    searchText.trim().toLowerCase();
+
+  const fromTime = dateFrom
+    ? new Date(`${dateFrom}T00:00:00`).getTime()
+    : null;
+
+  const toTime = dateTo
+    ? new Date(`${dateTo}T23:59:59.999`).getTime()
+    : null;
+
   const filteredReminders = reminders.filter(
     (reminder) => {
+      const personName =
+        `${reminder.event.person.firstName} ${
+          reminder.event.person.lastName ?? ''
+        }`
+          .trim()
+          .toLowerCase();
+
+      const eventTitle =
+        reminder.event.title.toLowerCase();
+
+      if (
+        normalizedSearch &&
+        !personName.includes(normalizedSearch) &&
+        !eventTitle.includes(normalizedSearch)
+      ) {
+        return false;
+      }
+
+      const dueTime = new Date(
+        reminder.dueAt,
+      ).getTime();
+
+      if (
+        fromTime !== null &&
+        dueTime < fromTime
+      ) {
+        return false;
+      }
+
+      if (
+        toTime !== null &&
+        dueTime > toTime
+      ) {
+        return false;
+      }
+
       if (statusFilter === 'ALL') {
         return true;
       }
@@ -333,6 +383,46 @@ export function RemindersDashboard({
         }}
       >
         <label>
+          Search
+          <input
+            type="search"
+            placeholder="Person or event title"
+            value={searchText}
+            onChange={(event) =>
+              setSearchText(event.target.value)
+            }
+            style={{
+              display: 'block',
+              minWidth: '220px',
+            }}
+          />
+        </label>
+
+        <label>
+          Due from
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(event) =>
+              setDateFrom(event.target.value)
+            }
+            style={{ display: 'block' }}
+          />
+        </label>
+
+        <label>
+          Due to
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(event) =>
+              setDateTo(event.target.value)
+            }
+            style={{ display: 'block' }}
+          />
+        </label>
+
+        <label>
           Channel
           <select
             value={channelFilter}
@@ -378,11 +468,17 @@ export function RemindersDashboard({
           type="button"
           disabled={
             channelFilter === 'ALL' &&
-            statusFilter === 'ALL'
+            statusFilter === 'ALL' &&
+            !searchText &&
+            !dateFrom &&
+            !dateTo
           }
           onClick={() => {
             setChannelFilter('ALL');
             setStatusFilter('ALL');
+            setSearchText('');
+            setDateFrom('');
+            setDateTo('');
           }}
         >
           Clear filters
