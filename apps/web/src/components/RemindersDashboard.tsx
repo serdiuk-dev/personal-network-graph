@@ -317,6 +317,38 @@ export function RemindersDashboard({
     },
   );
 
+  const summaryItems: Array<{
+    label: string;
+    value: number;
+    status: StatusFilter;
+  }> = [
+    {
+      label: 'Total',
+      value: summaryTotal,
+      status: 'ALL',
+    },
+    {
+      label: 'Pending',
+      value: deliverySummary.PENDING,
+      status: 'PENDING',
+    },
+    {
+      label: 'Processing',
+      value: deliverySummary.PROCESSING,
+      status: 'PROCESSING',
+    },
+    {
+      label: 'Sent',
+      value: deliverySummary.SENT,
+      status: 'SENT',
+    },
+    {
+      label: 'Failed',
+      value: deliverySummary.FAILED,
+      status: 'FAILED',
+    },
+  ];
+
   if (loading) {
     return (
       <main
@@ -420,40 +452,39 @@ export function RemindersDashboard({
             gap: '10px',
           }}
         >
-          {[
-            { label: 'Total', value: summaryTotal },
-            {
-              label: 'Pending',
-              value: deliverySummary.PENDING,
-            },
-            {
-              label: 'Processing',
-              value: deliverySummary.PROCESSING,
-            },
-            {
-              label: 'Sent',
-              value: deliverySummary.SENT,
-            },
-            {
-              label: 'Failed',
-              value: deliverySummary.FAILED,
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              style={{
-                minWidth: '100px',
-                padding: '8px 10px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-              }}
-            >
-              <div style={{ color: '#666' }}>
-                {item.label}
-              </div>
-              <strong>{item.value}</strong>
-            </div>
-          ))}
+          {summaryItems.map((item) => {
+            const active =
+              statusFilter === item.status;
+
+            return (
+              <button
+                key={item.label}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
+                  setStatusFilter(item.status)
+                }
+                style={{
+                  minWidth: '100px',
+                  padding: '8px 10px',
+                  border: active
+                    ? '2px solid #333'
+                    : '1px solid #ddd',
+                  borderRadius: '6px',
+                  background: active
+                    ? '#f2f2f2'
+                    : '#fff',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ color: '#666' }}>
+                  {item.label}
+                </div>
+                <strong>{item.value}</strong>
+              </button>
+            );
+          })}
         </div>
       </div>
 
