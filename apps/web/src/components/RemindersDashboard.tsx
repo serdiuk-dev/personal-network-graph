@@ -66,6 +66,8 @@ export function RemindersDashboard({
     useState<string | null>(null);
   const [deletingReminderId, setDeletingReminderId] =
     useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] =
+    useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function loadReminders(
@@ -95,6 +97,7 @@ export function RemindersDashboard({
       }
 
       setReminders(await response.json());
+      setLastUpdatedAt(new Date());
     } catch (err) {
       setError(
         err instanceof Error
@@ -109,6 +112,16 @@ export function RemindersDashboard({
 
   useEffect(() => {
     void loadReminders(view, true);
+  }, [view]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void loadReminders(view);
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [view]);
 
   function status(
@@ -392,6 +405,20 @@ export function RemindersDashboard({
               ? 'Upcoming reminders across all people'
               : 'Completed reminder delivery history'}
           </div>
+
+          {lastUpdatedAt && (
+            <div
+              style={{
+                color: '#777',
+                fontSize: '0.9em',
+                marginTop: '4px',
+              }}
+            >
+              Last updated:{' '}
+              {lastUpdatedAt.toLocaleString()}
+              {' · '}Auto-refresh every 60 seconds
+            </div>
+          )}
         </div>
 
         <button
