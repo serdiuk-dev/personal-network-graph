@@ -21,9 +21,16 @@ type View =
 function App() {
   const [view, setView] = useState<View>('graph');
   const [graphVersion, setGraphVersion] = useState(0);
+  const [peopleFocusId, setPeopleFocusId] =
+    useState<string | null>(null);
 
   function notifyGraphChanged() {
     setGraphVersion((version) => version + 1);
+  }
+
+  function openPersonFromReminder(personId: string) {
+    setPeopleFocusId(personId);
+    setView('people');
   }
 
   return (
@@ -134,11 +141,17 @@ function App() {
         )}
 
         {view === 'people' && (
-          <PeopleManager onChanged={notifyGraphChanged} />
+          <PeopleManager
+            onChanged={notifyGraphChanged}
+            focusPersonId={peopleFocusId}
+            onFocusConsumed={() => setPeopleFocusId(null)}
+          />
         )}
 
         {view === 'reminders' && (
-          <RemindersDashboard />
+          <RemindersDashboard
+            onOpenPerson={openPersonFromReminder}
+          />
         )}
 
         {view === 'relationships' && (

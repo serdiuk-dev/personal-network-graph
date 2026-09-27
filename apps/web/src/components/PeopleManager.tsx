@@ -56,9 +56,15 @@ const emptyForm: PersonForm = {
 
 type PeopleManagerProps = {
   onChanged: () => void;
+  focusPersonId?: string | null;
+  onFocusConsumed?: () => void;
 };
 
-export function PeopleManager({ onChanged }: PeopleManagerProps) {
+export function PeopleManager({
+  onChanged,
+  focusPersonId,
+  onFocusConsumed,
+}: PeopleManagerProps) {
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<PersonForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -96,6 +102,39 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
   useEffect(() => {
     loadPeople();
   }, []);
+
+  useEffect(() => {
+    if (!focusPersonId || loading) {
+      return;
+    }
+
+    const person = people.find(
+      (item) => item.id === focusPersonId,
+    );
+
+    if (!person) {
+      setError(`Person ${focusPersonId} not found`);
+      onFocusConsumed?.();
+      return;
+    }
+
+    setContactEventsPersonId(person.id);
+    onFocusConsumed?.();
+
+    window.setTimeout(() => {
+      document
+        .getElementById('focused-contact-events')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+    }, 0);
+  }, [
+    focusPersonId,
+    loading,
+    people,
+    onFocusConsumed,
+  ]);
 
   function updateField<K extends keyof PersonForm>(
     field: K,
@@ -572,10 +611,12 @@ export function PeopleManager({ onChanged }: PeopleManagerProps) {
       )}
 
       {contactEventsPersonId && (
-        <ContactEventsManager
-          personId={contactEventsPersonId}
-          onClose={() => setContactEventsPersonId(null)}
-        />
+        <div id="focused-contact-events">
+          <ContactEventsManager
+            personId={contactEventsPersonId}
+            onClose={() => setContactEventsPersonId(null)}
+          />
+        </div>
       )}
 
       {taxonomyPersonId && (

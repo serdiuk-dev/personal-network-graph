@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 
+type ReminderChannel = 'TELEGRAM' | 'EMAIL';
+type ReminderStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SENT'
+  | 'FAILED';
+
 type ReminderDelivery = {
-  channel: 'TELEGRAM' | 'EMAIL';
-  status: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
+  channel: ReminderChannel;
+  status: ReminderStatus;
 };
 
 type ReminderItem = {
@@ -25,10 +32,24 @@ type ReminderItem = {
 };
 
 type ReminderView = 'upcoming' | 'history';
+type ChannelFilter = 'ALL' | ReminderChannel;
+type StatusFilter = 'ALL' | ReminderStatus;
 
-export function RemindersDashboard() {
-  const [view, setView] = useState<ReminderView>('upcoming');
-  const [reminders, setReminders] = useState<ReminderItem[]>([]);
+type RemindersDashboardProps = {
+  onOpenPerson: (personId: string) => void;
+};
+
+export function RemindersDashboard({
+  onOpenPerson,
+}: RemindersDashboardProps) {
+  const [view, setView] =
+    useState<ReminderView>('upcoming');
+  const [reminders, setReminders] =
+    useState<ReminderItem[]>([]);
+  const [channelFilter, setChannelFilter] =
+    useState<ChannelFilter>('ALL');
+  const [statusFilter, setStatusFilter] =
+    useState<StatusFilter>('ALL');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +99,8 @@ export function RemindersDashboard() {
 
   function status(
     reminder: ReminderItem,
-    channel: 'TELEGRAM' | 'EMAIL',
-  ) {
+    channel: ReminderChannel,
+  ): ReminderStatus {
     return (
       reminder.deliveries.find(
         (delivery) => delivery.channel === channel,
@@ -93,9 +114,32 @@ export function RemindersDashboard() {
     }
   }
 
+  const filteredReminders = reminders.filter(
+    (reminder) => {
+      if (statusFilter === 'ALL') {
+        return true;
+      }
+
+      const channels: ReminderChannel[] =
+        channelFilter === 'ALL'
+          ? ['TELEGRAM', 'EMAIL']
+          : [channelFilter];
+
+      return channels.some(
+        (channel) =>
+          status(reminder, channel) === statusFilter,
+      );
+    },
+  );
+
   if (loading) {
     return (
-      <main style={{ padding: '24px', fontFamily: 'sans-serif' }}>
+      <main
+        style={{
+          padding: '24px',
+          fontFamily: 'sans-serif',
+        }}
+      >
         Loading reminders...
       </main>
     );
@@ -145,8 +189,9 @@ export function RemindersDashboard() {
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: '8px',
-          marginBottom: '20px',
+          marginBottom: '16px',
         }}
       >
         <button
@@ -166,23 +211,100 @@ export function RemindersDashboard() {
         </button>
       </div>
 
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '16px',
+          alignItems: 'end',
+          padding: '12px',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          marginBottom: '20px',
+        }}
+      >
+        <label>
+          Channel
+          <select
+            value={channelFilter}
+            onChange={(event) =>
+              setChannelFilter(
+                event.target.value as ChannelFilter,
+              )
+            }
+            style={{
+              display: 'block',
+              minWidth: '150px',
+            }}
+          >
+            <option value="ALL">All channels</option>
+            <option value="TELEGRAM">Telegram</option>
+            <option value="EMAIL">Email</option>
+          </select>
+        </label>
+
+        <label>
+          Status
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value as StatusFilter,
+              )
+            }
+            style={{
+              display: 'block',
+              minWidth: '150px',
+            }}
+          >
+            <option value="ALL">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="PROCESSING">Processing</option>
+            <option value="SENT">Sent</option>
+            <option value="FAILED">Failed</option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          disabled={
+            channelFilter === 'ALL' &&
+            statusFilter === 'ALL'
+          }
+          onClick={() => {
+            setChannelFilter('ALL');
+            setStatusFilter('ALL');
+          }}
+        >
+          Clear filters
+        </button>
+      </div>
+
       {error && (
         <p role="alert" style={{ fontWeight: 600 }}>
           {error}
         </p>
       )}
 
-      <div style={{ color: '#666', marginBottom: '16px' }}>
+      <div
+        style={{
+          color: '#666',
+          marginBottom: '16px',
+        }}
+      >
+        {filteredReminders.length} shown of{' '}
         {reminders.length}{' '}
         {isUpcoming ? 'upcoming' : 'completed'} reminder
         {reminders.length === 1 ? '' : 's'}
       </div>
 
-      {reminders.length === 0 ? (
+      {filteredReminders.length === 0 ? (
         <p>
-          {isUpcoming
-            ? 'No upcoming reminders.'
-            : 'No reminder history yet.'}
+          {reminders.length === 0
+            ? isUpcoming
+              ? 'No upcoming reminders.'
+              : 'No reminder history yet.'
+            : 'No reminders match the selected filters.'}
         </p>
       ) : (
         <div
@@ -191,7 +313,7 @@ export function RemindersDashboard() {
             gap: '12px',
           }}
         >
-          {reminders.map((reminder) => {
+          {filteredReminders.map((reminder) => {
             const personName =
               `${reminder.event.person.firstName} ${
                 reminder.event.person.lastName ?? ''
@@ -216,10 +338,31 @@ export function RemindersDashboard() {
                   }}
                 >
                   <div>
-                    <strong>{reminder.event.title}</strong>
+                    <strong>
+                      {reminder.event.title}
+                    </strong>
 
-                    <div style={{ marginTop: '4px' }}>
-                      Person: {personName}
+                    <div
+                      style={{
+                        marginTop: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span>Person: {personName}</span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onOpenPerson(
+                            reminder.event.person.id,
+                          )
+                        }
+                      >
+                        Open person
+                      </button>
                     </div>
 
                     <div>
@@ -265,7 +408,8 @@ export function RemindersDashboard() {
                     </div>
 
                     <div>
-                      Email: {status(reminder, 'EMAIL')}
+                      Email:{' '}
+                      {status(reminder, 'EMAIL')}
                     </div>
                   </div>
                 </div>
