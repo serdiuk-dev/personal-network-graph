@@ -242,14 +242,7 @@ export function RelationshipsManager({
   }
 
   return (
-    <main
-      style={{
-        padding: '24px',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        fontFamily: 'sans-serif',
-      }}
-    >
+    <main className="pnet-page">
       <h1>Relationships</h1>
 
       <form
@@ -257,7 +250,7 @@ export function RelationshipsManager({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(220px, 1fr))',
+            'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
           gap: '12px',
           padding: '20px',
           marginBottom: '28px',
@@ -392,7 +385,7 @@ export function RelationshipsManager({
 
         <div
           style={{
-            display: 'flex',
+            display: 'flex', flexWrap: 'wrap',
             gap: '10px',
           }}
         >
@@ -414,7 +407,7 @@ export function RelationshipsManager({
       </form>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             padding: '12px',
             marginBottom: '18px',
@@ -427,7 +420,7 @@ export function RelationshipsManager({
       )}
 
       {relationships.length === 0 ? (
-        <p>No relationships yet.</p>
+        <p className="pnet-state">No relationships yet.</p>
       ) : (
         <div
           style={{

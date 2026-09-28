@@ -286,14 +286,7 @@ export function PeopleManager({
   }
 
   return (
-    <main
-      style={{
-        padding: '24px',
-        fontFamily: 'sans-serif',
-        maxWidth: '1200px',
-        margin: '0 auto',
-      }}
-    >
+    <main className="pnet-page">
       <h1>People</h1>
 
       <form
@@ -301,7 +294,7 @@ export function PeopleManager({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(220px, 1fr))',
+            'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
           gap: '12px',
           padding: '20px',
           border: '1px solid #ddd',
@@ -465,7 +458,7 @@ export function PeopleManager({
 
         <div
           style={{
-            display: 'flex',
+            display: 'flex', flexWrap: 'wrap',
             gap: '10px',
           }}
         >
@@ -485,7 +478,7 @@ export function PeopleManager({
       </form>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             padding: '12px',
             marginBottom: '18px',
@@ -497,9 +490,9 @@ export function PeopleManager({
       )}
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="pnet-state">Loading...</p>
       ) : people.length === 0 ? (
-        <p>No people yet.</p>
+        <p className="pnet-state">No people yet.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table

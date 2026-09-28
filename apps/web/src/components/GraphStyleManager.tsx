@@ -191,7 +191,7 @@ function LineEditor({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'minmax(180px, 1fr) minmax(180px, 1fr) minmax(150px, 1fr)',
+            'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
           gap: '16px',
           alignItems: 'end',
         }}
@@ -200,7 +200,7 @@ function LineEditor({
           Color
           <div
             style={{
-              display: 'flex',
+              display: 'flex', flexWrap: 'wrap',
               gap: '8px',
               marginTop: '6px',
             }}
@@ -280,7 +280,7 @@ function LineEditor({
         style={{
           height: '28px',
           marginTop: '16px',
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap',
           alignItems: 'center',
         }}
       >
@@ -452,28 +452,14 @@ export function GraphStyleManager({
 
   if (loading) {
     return (
-      <main
-        style={{
-          padding: '24px',
-          fontFamily: 'sans-serif',
-        }}
-      >
+      <main className="pnet-page">
         Loading graph styles...
       </main>
     );
   }
 
   return (
-    <main
-      style={{
-        maxWidth: '1180px',
-        margin: '0 auto',
-        padding: '28px',
-        fontFamily:
-          'Inter, ui-sans-serif, system-ui, sans-serif',
-        color: '#17233d',
-      }}
-    >
+    <main className="pnet-page">
       <h1
         style={{
           marginBottom: '6px',
@@ -498,7 +484,7 @@ export function GraphStyleManager({
       </p>
 
       {error && (
-        <p style={{ color: '#b42318' }}>
+        <p className="pnet-error" style={{ color: '#b42318' }}>
           {error}
         </p>
       )}
@@ -805,7 +791,7 @@ export function GraphStyleManager({
           bottom: 0,
           marginTop: '28px',
           padding: '16px 0',
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap',
           gap: '12px',
           background:
             'rgba(248,251,252,0.94)',

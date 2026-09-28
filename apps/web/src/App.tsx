@@ -34,27 +34,9 @@ function App() {
   }
 
   return (
-    <div
-      style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <nav
-        style={{
-          height: '52px',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '0 18px',
-          borderBottom: '1px solid #ddd',
-          fontFamily: 'sans-serif',
-        }}
-      >
-        <strong style={{ marginRight: '20px' }}>
+    <div className="pnet-app">
+      <nav className="pnet-nav">
+        <strong className="pnet-brand">
           Personal Network
         </strong>
 
@@ -123,13 +105,7 @@ function App() {
         </button>
       </nav>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflow: view === 'graph' ? 'hidden' : 'auto',
-        }}
-      >
+      <div className="pnet-content">
         {view === 'graph' && (
           <NetworkGraph refreshKey={graphVersion} />
         )}

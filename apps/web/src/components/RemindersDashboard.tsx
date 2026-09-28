@@ -364,12 +364,7 @@ export function RemindersDashboard({
 
   if (loading) {
     return (
-      <main
-        style={{
-          padding: '24px',
-          fontFamily: 'sans-serif',
-        }}
-      >
+      <main className="pnet-page">
         Loading reminders...
       </main>
     );
@@ -378,17 +373,10 @@ export function RemindersDashboard({
   const isUpcoming = view === 'upcoming';
 
   return (
-    <main
-      style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '24px',
-        fontFamily: 'sans-serif',
-      }}
-    >
+    <main className="pnet-page">
       <div
         style={{
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '16px',
@@ -515,7 +503,7 @@ export function RemindersDashboard({
         </div>
       </div>
 
-      <div
+      <div className="pnet-filters"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -538,7 +526,7 @@ export function RemindersDashboard({
             }
             style={{
               display: 'block',
-              minWidth: '220px',
+              width: '100%',
             }}
           />
         </label>
@@ -578,7 +566,7 @@ export function RemindersDashboard({
             }
             style={{
               display: 'block',
-              minWidth: '150px',
+              width: '100%',
             }}
           >
             <option value="ALL">All channels</option>
@@ -598,7 +586,7 @@ export function RemindersDashboard({
             }
             style={{
               display: 'block',
-              minWidth: '150px',
+              width: '100%',
             }}
           >
             <option value="ALL">All statuses</option>
@@ -631,7 +619,7 @@ export function RemindersDashboard({
       </div>
 
       {error && (
-        <p role="alert" style={{ fontWeight: 600 }}>
+        <p className="pnet-error" role="alert" style={{ fontWeight: 600 }}>
           {error}
         </p>
       )}
@@ -649,7 +637,7 @@ export function RemindersDashboard({
       </div>
 
       {filteredReminders.length === 0 ? (
-        <p>
+        <p className="pnet-state">
           {reminders.length === 0
             ? isUpcoming
               ? 'No upcoming reminders.'
@@ -698,7 +686,7 @@ export function RemindersDashboard({
               >
                 <div
                   style={{
-                    display: 'flex',
+                    display: 'flex', flexWrap: 'wrap',
                     justifyContent: 'space-between',
                     gap: '20px',
                     alignItems: 'flex-start',
@@ -770,7 +758,7 @@ export function RemindersDashboard({
 
                   <div
                     style={{
-                      minWidth: '240px',
+                      width: 'min(100%, 320px)',
                       display: 'grid',
                       gap: '12px',
                     }}

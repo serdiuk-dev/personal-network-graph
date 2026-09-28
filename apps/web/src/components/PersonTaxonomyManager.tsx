@@ -159,7 +159,7 @@ export function PersonTaxonomyManager({
 
   if (!person) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div className="pnet-state">
         {error ?? 'Loading...'}
       </div>
     );
@@ -176,7 +176,7 @@ export function PersonTaxonomyManager({
     >
       <div
         style={{
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
@@ -192,7 +192,7 @@ export function PersonTaxonomyManager({
       </div>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             marginBottom: '16px',
             padding: '10px',
@@ -207,14 +207,14 @@ export function PersonTaxonomyManager({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(300px, 1fr))',
+            'repeat(auto-fit, minmax(min(300px, 100%), 1fr))',
           gap: '30px',
         }}
       >
         <div>
           <h3>Categories</h3>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             <input
               value={newCategory}
               onChange={(event) =>
@@ -262,7 +262,7 @@ export function PersonTaxonomyManager({
         <div>
           <h3>Interests</h3>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             <input
               value={newInterest}
               onChange={(event) =>

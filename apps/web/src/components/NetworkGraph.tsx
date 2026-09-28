@@ -1839,23 +1839,8 @@ export function NetworkGraph({
   ]);
 
   return (
-    <main
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        fontFamily: 'sans-serif',
-      }}
-    >
-      <section
-        style={{
-          flex: 1,
-          minWidth: 0,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+    <main className="pnet-graph">
+      <section className="pnet-graph-stage">
         <header
           style={{
             flexShrink: 0,
@@ -2031,6 +2016,8 @@ export function NetworkGraph({
             }
             style={{
               marginLeft: 'auto',
+              maxWidth: '100%',
+              flexWrap: 'wrap',
               display: 'flex',
               gap: '8px',
             }}
@@ -2045,7 +2032,7 @@ export function NetworkGraph({
               }
               placeholder="Search person..."
               style={{
-                width: '220px',
+                width: 'min(220px, 100%)',
                 padding: '7px',
               }}
             />
@@ -2191,7 +2178,7 @@ export function NetworkGraph({
           </span>        </div>
 
         {error ? (
-          <div
+          <div className="pnet-error"
             style={{
               padding: '20px',
             }}
@@ -2200,12 +2187,11 @@ export function NetworkGraph({
           </div>
         ) : (
           <div
+            className="pnet-graph-canvas"
             ref={containerRef}
             style={{
               background:
                 PRODIGY_LIGHT_THEME.canvas.background,
-              flex: 1,
-              minHeight: 0,
               width: '100%',
               position: 'relative',
               overflow: 'hidden',
@@ -2215,16 +2201,7 @@ export function NetworkGraph({
       </section>
 
       {selectedNode && (
-        <aside
-          style={{
-            width: '320px',
-            flexShrink: 0,
-            padding: '24px',
-            borderLeft:
-              '1px solid #ddd',
-            overflowY: 'auto',
-          }}
-        >
+        <aside className="pnet-graph-details">
           <h2>
             {selectedNode.label}
           </h2>

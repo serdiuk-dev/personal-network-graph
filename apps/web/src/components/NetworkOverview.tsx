@@ -182,7 +182,7 @@ export function NetworkOverview({
 
   if (loading) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div className="pnet-page">
         Loading network analytics...
       </div>
     );
@@ -190,10 +190,10 @@ export function NetworkOverview({
 
   if (error) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div className="pnet-page">
         <h1>Network Overview</h1>
 
-        <p style={{ color: '#b42318' }}>
+        <p className="pnet-error">
           {error}
         </p>
       </div>
@@ -256,14 +256,7 @@ export function NetworkOverview({
   ];
 
   return (
-    <main
-      style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '24px',
-        fontFamily: 'sans-serif',
-      }}
-    >
+    <main className="pnet-page">
       <div
         style={{
           marginBottom: '24px',
@@ -285,7 +278,7 @@ export function NetworkOverview({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(160px, 1fr))',
+            'repeat(auto-fit, minmax(min(160px, 100%), 1fr))',
           gap: '14px',
           marginBottom: '22px',
         }}
@@ -317,7 +310,7 @@ export function NetworkOverview({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(280px, 1fr))',
+            'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
           gap: '16px',
         }}
       >

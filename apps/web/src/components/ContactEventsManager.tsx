@@ -390,13 +390,13 @@ export function ContactEventsManager({
       </button>
 
       {error && (
-        <p role="alert" style={{ fontWeight: 600 }}>
+        <p className="pnet-error" role="alert" style={{ fontWeight: 600 }}>
           {error}
         </p>
       )}
 
       {loading ? (
-        <p>Loading events and reminders...</p>
+        <p className="pnet-state">Loading events and reminders...</p>
       ) : (
         <>
           <form
@@ -460,7 +460,7 @@ export function ContactEventsManager({
             <h3>Upcoming reminders</h3>
 
             {upcomingReminders.length === 0 ? (
-              <p>No upcoming reminders.</p>
+              <p className="pnet-state">No upcoming reminders.</p>
             ) : (
               upcomingReminders.map(({ reminder, eventTitle }) => (
                 <div
@@ -493,7 +493,7 @@ export function ContactEventsManager({
             </h3>
 
             {events.length === 0 ? (
-              <p>No contact events yet.</p>
+              <p className="pnet-state">No contact events yet.</p>
             ) : (
               events.map((item) => (
                 <div

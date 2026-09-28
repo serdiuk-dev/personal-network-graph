@@ -269,7 +269,7 @@ export function ContactChannelsManager({
     >
       <div
         style={{
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '16px',
@@ -291,7 +291,7 @@ export function ContactChannelsManager({
       </div>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             marginBottom: '16px',
             padding: '10px',
@@ -307,7 +307,7 @@ export function ContactChannelsManager({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(220px, 1fr))',
+            'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
           gap: '12px',
           padding: '16px',
           border: '1px solid #ddd',
@@ -467,7 +467,7 @@ export function ContactChannelsManager({
 
         <div
           style={{
-            display: 'flex',
+            display: 'flex', flexWrap: 'wrap',
             gap: '10px',
           }}
         >
@@ -489,9 +489,9 @@ export function ContactChannelsManager({
       </form>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="pnet-state">Loading...</p>
       ) : channels.length === 0 ? (
-        <p>No contact channels yet.</p>
+        <p className="pnet-state">No contact channels yet.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table

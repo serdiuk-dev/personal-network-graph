@@ -326,26 +326,14 @@ export function RelationshipStyleManager({
 
   if (loading) {
     return (
-      <main
-        style={{
-          padding: '24px',
-          fontFamily: 'sans-serif',
-        }}
-      >
+      <main className="pnet-page">
         Loading edge styles...
       </main>
     );
   }
 
   return (
-    <main
-      style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
-        padding: '24px',
-        fontFamily: 'sans-serif',
-      }}
-    >
+    <main className="pnet-page">
       <h1
         style={{
           marginBottom: '6px',
@@ -366,7 +354,7 @@ export function RelationshipStyleManager({
       </p>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             marginBottom: '18px',
             color: '#b42318',
@@ -459,7 +447,7 @@ export function RelationshipStyleManager({
               style={{
                 display: 'grid',
                 gridTemplateColumns:
-                  'repeat(auto-fit, minmax(240px, 1fr))',
+                  'repeat(auto-fit, minmax(min(240px, 100%), 1fr))',
                 gap: '20px',
                 marginBottom: '22px',
               }}
@@ -467,7 +455,7 @@ export function RelationshipStyleManager({
               <div>
                 <label
                   style={{
-                    display: 'flex',
+                    display: 'flex', flexWrap: 'wrap',
                     alignItems:
                       'center',
                     gap: '8px',
@@ -529,7 +517,7 @@ export function RelationshipStyleManager({
               <div>
                 <label
                   style={{
-                    display: 'flex',
+                    display: 'flex', flexWrap: 'wrap',
                     alignItems:
                       'center',
                     gap: '8px',

@@ -152,7 +152,7 @@ function TaxonomySection({
       <form
         onSubmit={createItem}
         style={{
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap',
           gap: '8px',
           marginBottom: '20px',
         }}
@@ -175,7 +175,7 @@ function TaxonomySection({
       </form>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             marginBottom: '16px',
             padding: '10px',
@@ -187,14 +187,14 @@ function TaxonomySection({
       )}
 
       {items.length === 0 ? (
-        <p>No items yet.</p>
+        <p className="pnet-state">No items yet.</p>
       ) : (
         <div>
           {items.map((item) => (
             <div
               key={item.id}
               style={{
-                display: 'flex',
+                display: 'flex', flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '8px',
                 padding: '10px 0',
@@ -302,14 +302,7 @@ export function TaxonomyManager({
   }, []);
 
   return (
-    <main
-      style={{
-        padding: '24px',
-        maxWidth: '1000px',
-        margin: '0 auto',
-        fontFamily: 'sans-serif',
-      }}
-    >
+    <main className="pnet-page">
       <h1>Categories & Interests</h1>
 
       <p>
@@ -317,7 +310,7 @@ export function TaxonomyManager({
       </p>
 
       {error && (
-        <div
+        <div className="pnet-error"
           style={{
             marginBottom: '20px',
             padding: '12px',
@@ -332,7 +325,7 @@ export function TaxonomyManager({
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(350px, 1fr))',
+            'repeat(auto-fit, minmax(min(350px, 100%), 1fr))',
           gap: '24px',
         }}
       >
