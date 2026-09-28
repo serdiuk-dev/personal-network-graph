@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type ReminderChannel = 'TELEGRAM' | 'EMAIL';
 type ReminderStatus =
@@ -46,6 +46,8 @@ type RemindersDashboardProps = {
 export function RemindersDashboard({
   onOpenPerson,
 }: RemindersDashboardProps) {
+  const activeViewButton = useRef<HTMLButtonElement>(null);
+  const restoreViewFocus = useRef(false);
   const [view, setView] =
     useState<ReminderView>('upcoming');
   const [reminders, setReminders] =
@@ -124,6 +126,13 @@ export function RemindersDashboard({
     };
   }, [view]);
 
+  useEffect(() => {
+    if (!loading && restoreViewFocus.current) {
+      restoreViewFocus.current = false;
+      activeViewButton.current?.focus();
+    }
+  }, [loading]);
+
   function status(
     reminder: ReminderItem,
     channel: ReminderChannel,
@@ -137,6 +146,7 @@ export function RemindersDashboard({
 
   function switchView(nextView: ReminderView) {
     if (nextView !== view) {
+      restoreViewFocus.current = true;
       setEditingReminderId(null);
       setEditDueAt('');
       setView(nextView);
@@ -364,16 +374,16 @@ export function RemindersDashboard({
 
   if (loading) {
     return (
-      <main className="pnet-page">
+      <div className="pnet-page" role="status">
         Loading reminders...
-      </main>
+      </div>
     );
   }
 
   const isUpcoming = view === 'upcoming';
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <div
         style={{
           display: 'flex', flexWrap: 'wrap',
@@ -418,7 +428,7 @@ export function RemindersDashboard({
         </button>
       </div>
 
-      <div
+      <div className="pnet-view-switch"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -428,7 +438,8 @@ export function RemindersDashboard({
       >
         <button
           type="button"
-          disabled={view === 'upcoming'}
+          ref={isUpcoming ? activeViewButton : undefined}
+          aria-pressed={view === 'upcoming'}
           onClick={() => switchView('upcoming')}
         >
           Upcoming
@@ -436,7 +447,8 @@ export function RemindersDashboard({
 
         <button
           type="button"
-          disabled={view === 'history'}
+          ref={!isUpcoming ? activeViewButton : undefined}
+          aria-pressed={view === 'history'}
           onClick={() => switchView('history')}
         >
           History
@@ -987,6 +999,6 @@ export function RemindersDashboard({
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

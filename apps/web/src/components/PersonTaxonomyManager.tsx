@@ -159,7 +159,7 @@ export function PersonTaxonomyManager({
 
   if (!person) {
     return (
-      <div className="pnet-state">
+      <div className="pnet-state" role={error ? 'alert' : 'status'}>
         {error ?? 'Loading...'}
       </div>
     );
@@ -192,7 +192,7 @@ export function PersonTaxonomyManager({
       </div>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             marginBottom: '16px',
             padding: '10px',
@@ -215,13 +215,16 @@ export function PersonTaxonomyManager({
           <h3>Categories</h3>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            <input
-              value={newCategory}
-              onChange={(event) =>
-                setNewCategory(event.target.value)
-              }
-              placeholder="New category"
-            />
+            <label className="pnet-field">
+              <span>New category</span>
+              <input
+                value={newCategory}
+                onChange={(event) =>
+                  setNewCategory(event.target.value)
+                }
+                placeholder="New category"
+              />
+            </label>
 
             <button
               type="button"
@@ -263,13 +266,16 @@ export function PersonTaxonomyManager({
           <h3>Interests</h3>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            <input
-              value={newInterest}
-              onChange={(event) =>
-                setNewInterest(event.target.value)
-              }
-              placeholder="New interest"
-            />
+            <label className="pnet-field">
+              <span>New interest</span>
+              <input
+                value={newInterest}
+                onChange={(event) =>
+                  setNewInterest(event.target.value)
+                }
+                placeholder="New interest"
+              />
+            </label>
 
             <button
               type="button"

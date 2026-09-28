@@ -58,7 +58,7 @@ h1 {
 }
 .pnet-app button:hover:not(:disabled) { background: #edf2f7; }
 .pnet-app button:disabled { cursor: default; color: #64748b; background: #f1f5f9; }
-.pnet-nav button:disabled { color: #fff; background: #334155; border-color: #334155; }
+.pnet-nav button[aria-current="page"], .pnet-view-switch button[aria-pressed="true"] { color: #fff; background: #334155; border-color: #334155; }
 .pnet-app :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
   min-height: 40px; padding: 8px; border: 1px solid #cbd5e1;
   border-radius: 6px; background: #fff; color: #17233d;
@@ -94,4 +94,27 @@ h1 {
   .pnet-brand { flex-basis: 100%; }
   .pnet-app button { min-height: 44px; }
   .pnet-app :where(input, select, textarea) { font-size: 16px; }
+}
+
+/* v0.40.0 — Keyboard navigation, labels and focus */
+.pnet-skip-link {
+  position: fixed; top: 8px; left: 8px; z-index: 1000;
+  transform: translateY(-200%); padding: 12px 16px;
+  background: #fff; color: #17233d; border: 2px solid #2563eb;
+  border-radius: 6px;
+}
+.pnet-skip-link:focus { transform: translateY(0); }
+.pnet-field { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.pnet-field-full { grid-column: 1 / -1; }
+.pnet-field-grow { flex: 1 1 180px; }
+.pnet-app :where(a, [tabindex]):focus-visible {
+  outline: 2px solid #2563eb; outline-offset: -2px;
+}
+.pnet-app :where(input, select, textarea, button, [tabindex]) {
+  scroll-margin-block: 16px;
+}
+.pnet-app form { scroll-margin-block: 16px; }
+.pnet-nav button[aria-current="page"]:hover,
+.pnet-view-switch button[aria-pressed="true"]:hover {
+  color: #fff; background: #334155;
 }

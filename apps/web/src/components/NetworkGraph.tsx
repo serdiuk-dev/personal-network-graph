@@ -1839,7 +1839,7 @@ export function NetworkGraph({
   ]);
 
   return (
-    <main className="pnet-graph">
+    <div className="pnet-graph">
       <section className="pnet-graph-stage">
         <header
           style={{
@@ -1918,55 +1918,61 @@ export function NetworkGraph({
             Edge labels
           </label>
 
-          <select
-            value={categoryFilter}
-            onChange={(event) => {
-              setSelectedNode(null);
-              setCategoryFilter(
-                event.target.value,
-              );
-            }}
-          >
-            <option value="">
-              All categories
-            </option>
+          <label className="pnet-field">
+            <span>Category</span>
+            <select
+              value={categoryFilter}
+              onChange={(event) => {
+                setSelectedNode(null);
+                setCategoryFilter(
+                  event.target.value,
+                );
+              }}
+            >
+              <option value="">
+                All categories
+              </option>
 
-            {categories.map(
-              (category) => (
-                <option
-                  key={category.id}
-                  value={category.id}
-                >
-                  {category.name}
-                </option>
-              ),
-            )}
-          </select>
+              {categories.map(
+                (category) => (
+                  <option
+                    key={category.id}
+                    value={category.id}
+                  >
+                    {category.name}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
 
-          <select
-            value={interestFilter}
-            onChange={(event) => {
-              setSelectedNode(null);
-              setInterestFilter(
-                event.target.value,
-              );
-            }}
-          >
-            <option value="">
-              All interests
-            </option>
+          <label className="pnet-field">
+            <span>Interest</span>
+            <select
+              value={interestFilter}
+              onChange={(event) => {
+                setSelectedNode(null);
+                setInterestFilter(
+                  event.target.value,
+                );
+              }}
+            >
+              <option value="">
+                All interests
+              </option>
 
-            {interests.map(
-              (interest) => (
-                <option
-                  key={interest.id}
-                  value={interest.id}
-                >
-                  {interest.name}
-                </option>
-              ),
-            )}
-          </select>
+              {interests.map(
+                (interest) => (
+                  <option
+                    key={interest.id}
+                    value={interest.id}
+                  >
+                    {interest.name}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
 
           <label>
             Importance ≥{' '}
@@ -2022,20 +2028,23 @@ export function NetworkGraph({
               gap: '8px',
             }}
           >
-            <input
-              type="search"
-              value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value,
-                )
-              }
-              placeholder="Search person..."
-              style={{
-                width: 'min(220px, 100%)',
-                padding: '7px',
-              }}
-            />
+            <label className="pnet-field">
+              <span>Search person</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target.value,
+                  )
+                }
+                placeholder="Search person..."
+                style={{
+                  width: 'min(220px, 100%)',
+                  padding: '7px',
+                }}
+              />
+            </label>
 
             <button type="submit">
               Find
@@ -2178,7 +2187,7 @@ export function NetworkGraph({
           </span>        </div>
 
         {error ? (
-          <div className="pnet-error"
+          <div className="pnet-error" role="alert"
             style={{
               padding: '20px',
             }}
@@ -2327,6 +2336,6 @@ export function NetworkGraph({
           </button>
         </aside>
       )}
-    </main>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { focusFirstField } from './FocusPanel';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
 type ContactPlatform =
   | 'TELEGRAM'
@@ -85,6 +86,7 @@ export function ContactChannelsManager({
   personId,
   onClose,
 }: Props) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [person, setPerson] = useState<PersonSummary | null>(null);
   const [channels, setChannels] = useState<ContactChannel[]>([]);
   const [form, setForm] = useState<ChannelForm>(emptyForm);
@@ -152,6 +154,7 @@ export function ContactChannelsManager({
       automationAllowed: channel.automationAllowed,
       notes: channel.notes ?? '',
     });
+    focusFirstField(formRef.current);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -291,7 +294,7 @@ export function ContactChannelsManager({
       </div>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             marginBottom: '16px',
             padding: '10px',
@@ -303,6 +306,7 @@ export function ContactChannelsManager({
       )}
 
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         style={{
           display: 'grid',
@@ -343,49 +347,61 @@ export function ContactChannelsManager({
           </select>
         </label>
 
-        <input
-          placeholder="Handle / username"
-          value={form.handle}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              handle: event.target.value,
-            }))
-          }
-        />
+        <label className="pnet-field">
+          <span>Handle / username</span>
+          <input
+            placeholder="Handle / username"
+            value={form.handle}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                handle: event.target.value,
+              }))
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Address / email / phone"
-          value={form.address}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              address: event.target.value,
-            }))
-          }
-        />
+        <label className="pnet-field">
+          <span>Address / email / phone</span>
+          <input
+            placeholder="Address / email / phone"
+            value={form.address}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                address: event.target.value,
+              }))
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Profile URL"
-          value={form.profileUrl}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              profileUrl: event.target.value,
-            }))
-          }
-        />
+        <label className="pnet-field">
+          <span>Profile URL</span>
+          <input
+            placeholder="Profile URL"
+            value={form.profileUrl}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                profileUrl: event.target.value,
+              }))
+            }
+          />
+        </label>
 
-        <input
-          placeholder="External ID"
-          value={form.externalId}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              externalId: event.target.value,
-            }))
-          }
-        />
+        <label className="pnet-field">
+          <span>External ID</span>
+          <input
+            placeholder="External ID"
+            value={form.externalId}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                externalId: event.target.value,
+              }))
+            }
+          />
+        </label>
 
         <label>
           Priority
@@ -450,20 +466,22 @@ export function ContactChannelsManager({
           Automation allowed
         </label>
 
-        <textarea
-          placeholder="Notes"
-          value={form.notes}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              notes: event.target.value,
-            }))
-          }
-          style={{
-            gridColumn: '1 / -1',
-            minHeight: '70px',
-          }}
-        />
+        <label className="pnet-field pnet-field-full">
+          <span>Notes</span>
+          <textarea
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                notes: event.target.value,
+              }))
+            }
+            style={{
+              minHeight: '70px',
+            }}
+          />
+        </label>
 
         <div
           style={{
@@ -489,11 +507,11 @@ export function ContactChannelsManager({
       </form>
 
       {loading ? (
-        <p className="pnet-state">Loading...</p>
+        <p className="pnet-state" role="status">Loading...</p>
       ) : channels.length === 0 ? (
         <p className="pnet-state">No contact channels yet.</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div tabIndex={0} role="region" aria-label="Contact channels table" style={{ overflowX: 'auto' }}>
           <table
             style={{
               width: '100%',

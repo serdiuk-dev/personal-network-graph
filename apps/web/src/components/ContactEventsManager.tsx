@@ -396,7 +396,7 @@ export function ContactEventsManager({
       )}
 
       {loading ? (
-        <p className="pnet-state">Loading events and reminders...</p>
+        <p className="pnet-state" role="status">Loading events and reminders...</p>
       ) : (
         <>
           <form
@@ -407,21 +407,27 @@ export function ContactEventsManager({
               marginTop: '16px',
             }}
           >
-            <input
-              required
-              disabled={saving}
-              placeholder="Event type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            />
+            <label className="pnet-field">
+              <span>Event type</span>
+              <input
+                required
+                disabled={saving}
+                placeholder="Event type"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+              />
+            </label>
 
-            <input
-              required
-              disabled={saving}
-              placeholder="Event title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            <label className="pnet-field">
+              <span>Event title</span>
+              <input
+                required
+                disabled={saving}
+                placeholder="Event title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
 
             <label>
               Event date/time
@@ -444,12 +450,15 @@ export function ContactEventsManager({
               />
             </label>
 
-            <textarea
-              disabled={saving}
-              placeholder="Note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+            <label className="pnet-field">
+              <span>Note</span>
+              <textarea
+                disabled={saving}
+                placeholder="Note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </label>
 
             <button type="submit" disabled={saving}>
               {saving ? 'Creating...' : 'Create event'}
@@ -512,19 +521,25 @@ export function ContactEventsManager({
                         marginBottom: '12px',
                       }}
                     >
-                      <input
-                        required
-                        value={editType}
-                        disabled={updatingEventId === item.id}
-                        onChange={(e) => setEditType(e.target.value)}
-                      />
+                      <label className="pnet-field">
+                        <span>Event type</span>
+                        <input
+                          required
+                          value={editType}
+                          disabled={updatingEventId === item.id}
+                          onChange={(e) => setEditType(e.target.value)}
+                        />
+                      </label>
 
-                      <input
-                        required
-                        value={editTitle}
-                        disabled={updatingEventId === item.id}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                      />
+                      <label className="pnet-field">
+                        <span>Event title</span>
+                        <input
+                          required
+                          value={editTitle}
+                          disabled={updatingEventId === item.id}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                        />
+                      </label>
 
                       <label>
                         Event date/time
@@ -536,11 +551,14 @@ export function ContactEventsManager({
                         />
                       </label>
 
-                      <textarea
-                        value={editNote}
-                        disabled={updatingEventId === item.id}
-                        onChange={(e) => setEditNote(e.target.value)}
-                      />
+                      <label className="pnet-field">
+                        <span>Note</span>
+                        <textarea
+                          value={editNote}
+                          disabled={updatingEventId === item.id}
+                          onChange={(e) => setEditNote(e.target.value)}
+                        />
+                      </label>
 
                       <div>
                         <button

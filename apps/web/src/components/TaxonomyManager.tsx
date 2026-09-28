@@ -157,17 +157,20 @@ function TaxonomySection({
           marginBottom: '20px',
         }}
       >
-        <input
-          value={newName}
-          onChange={(event) =>
-            setNewName(event.target.value)
-          }
-          placeholder={`New ${title.toLowerCase().replace(/s$/, '')}`}
-          style={{
-            flex: 1,
-            padding: '8px',
-          }}
-        />
+        <label className="pnet-field pnet-field-grow">
+          <span>{type === 'categories' ? 'New category' : 'New interest'}</span>
+          <input
+            value={newName}
+            onChange={(event) =>
+              setNewName(event.target.value)
+            }
+            placeholder={`New ${title.toLowerCase().replace(/s$/, '')}`}
+            style={{
+              flex: 1,
+              padding: '8px',
+            }}
+          />
+        </label>
 
         <button type="submit">
           Add
@@ -175,7 +178,7 @@ function TaxonomySection({
       </form>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             marginBottom: '16px',
             padding: '10px',
@@ -203,13 +206,16 @@ function TaxonomySection({
             >
               {editingId === item.id ? (
                 <>
-                  <input
-                    value={editingName}
-                    onChange={(event) =>
-                      setEditingName(event.target.value)
-                    }
-                    style={{ flex: 1 }}
-                  />
+                  <label className="pnet-field pnet-field-grow">
+                    <span>{type === 'categories' ? 'Category name' : 'Interest name'}</span>
+                    <input
+                      value={editingName}
+                      onChange={(event) =>
+                        setEditingName(event.target.value)
+                      }
+                      style={{ flex: 1 }}
+                    />
+                  </label>
 
                   <button
                     type="button"
@@ -302,7 +308,7 @@ export function TaxonomyManager({
   }, []);
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <h1>Categories & Interests</h1>
 
       <p>
@@ -310,7 +316,7 @@ export function TaxonomyManager({
       </p>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             marginBottom: '20px',
             padding: '12px',
@@ -345,6 +351,6 @@ export function TaxonomyManager({
           onChanged={onChanged}
         />
       </div>
-    </main>
+    </div>
   );
 }

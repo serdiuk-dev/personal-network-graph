@@ -182,7 +182,7 @@ export function NetworkOverview({
 
   if (loading) {
     return (
-      <div className="pnet-page">
+      <div className="pnet-page" role="status">
         Loading network analytics...
       </div>
     );
@@ -193,7 +193,7 @@ export function NetworkOverview({
       <div className="pnet-page">
         <h1>Network Overview</h1>
 
-        <p className="pnet-error">
+        <p className="pnet-error" role="alert">
           {error}
         </p>
       </div>
@@ -256,7 +256,7 @@ export function NetworkOverview({
   ];
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <div
         style={{
           marginBottom: '24px',
@@ -361,6 +361,6 @@ export function NetworkOverview({
           }
         />
       </div>
-    </main>
+    </div>
   );
 }

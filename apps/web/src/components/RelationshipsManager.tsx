@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { focusFirstField } from './FocusPanel';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
 type Person = {
   id: string;
@@ -41,6 +42,7 @@ type RelationshipsManagerProps = {
 export function RelationshipsManager({
   onChanged,
 }: RelationshipsManagerProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [people, setPeople] = useState<Person[]>([]);
   const [relationships, setRelationships] =
     useState<Relationship[]>([]);
@@ -126,10 +128,7 @@ export function RelationshipsManager({
       notes: relationship.notes ?? '',
     });
 
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
+    focusFirstField(formRef.current);
   }
 
   async function handleSubmit(
@@ -242,10 +241,11 @@ export function RelationshipsManager({
   }
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <h1>Relationships</h1>
 
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         style={{
           display: 'grid',
@@ -367,21 +367,23 @@ export function RelationshipsManager({
           </select>
         </label>
 
-        <textarea
-          value={form.notes}
-          onChange={(event) =>
-            setForm({
-              ...form,
-              notes:
-                event.target.value,
-            })
-          }
-          placeholder="Relationship notes"
-          style={{
-            gridColumn: '1 / -1',
-            minHeight: '80px',
-          }}
-        />
+        <label className="pnet-field pnet-field-full">
+          <span>Relationship notes</span>
+          <textarea
+            value={form.notes}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                notes:
+                  event.target.value,
+              })
+            }
+            placeholder="Relationship notes"
+            style={{
+              minHeight: '80px',
+            }}
+          />
+        </label>
 
         <div
           style={{
@@ -407,7 +409,7 @@ export function RelationshipsManager({
       </form>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             padding: '12px',
             marginBottom: '18px',
@@ -422,7 +424,7 @@ export function RelationshipsManager({
       {relationships.length === 0 ? (
         <p className="pnet-state">No relationships yet.</p>
       ) : (
-        <div
+        <div tabIndex={0} role="region" aria-label="Relationships table"
           style={{
             overflowX: 'auto',
           }}
@@ -535,6 +537,6 @@ export function RelationshipsManager({
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

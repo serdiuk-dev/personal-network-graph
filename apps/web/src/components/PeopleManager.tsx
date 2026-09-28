@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { focusFirstField, FocusPanel } from './FocusPanel';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { ContactChannelsManager } from './ContactChannelsManager';
 import { ContactEventsManager } from './ContactEventsManager';
 import { PersonTaxonomyManager } from './PersonTaxonomyManager';
@@ -65,6 +66,7 @@ export function PeopleManager({
   focusPersonId,
   onFocusConsumed,
 }: PeopleManagerProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<PersonForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -121,14 +123,7 @@ export function PeopleManager({
     setContactEventsPersonId(person.id);
     onFocusConsumed?.();
 
-    window.setTimeout(() => {
-      document
-        .getElementById('focused-contact-events')
-        ?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-    }, 0);
+    // FocusPanel focuses and reveals the opened events panel.
   }, [
     focusPersonId,
     loading,
@@ -165,10 +160,7 @@ export function PeopleManager({
       primaryTag: person.primaryTag ?? '',
     });
 
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
+    focusFirstField(formRef.current);
   }
 
   function resetForm() {
@@ -286,10 +278,11 @@ export function PeopleManager({
   }
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <h1>People</h1>
 
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         style={{
           display: 'grid',
@@ -302,79 +295,106 @@ export function PeopleManager({
           marginBottom: '28px',
         }}
       >
-        <input
-          required
-          placeholder="First name *"
-          value={form.firstName}
-          onChange={(event) =>
-            updateField('firstName', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>First name *</span>
+          <input
+            required
+            placeholder="First name *"
+            value={form.firstName}
+            onChange={(event) =>
+              updateField('firstName', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Last name"
-          value={form.lastName}
-          onChange={(event) =>
-            updateField('lastName', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Last name</span>
+          <input
+            placeholder="Last name"
+            value={form.lastName}
+            onChange={(event) =>
+              updateField('lastName', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Nickname"
-          value={form.nickname}
-          onChange={(event) =>
-            updateField('nickname', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Nickname</span>
+          <input
+            placeholder="Nickname"
+            value={form.nickname}
+            onChange={(event) =>
+              updateField('nickname', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={(event) =>
-            updateField('email', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Email</span>
+          <input
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={(event) =>
+              updateField('email', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Phone"
-          value={form.phone}
-          onChange={(event) =>
-            updateField('phone', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Phone</span>
+          <input
+            placeholder="Phone"
+            value={form.phone}
+            onChange={(event) =>
+              updateField('phone', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Company"
-          value={form.company}
-          onChange={(event) =>
-            updateField('company', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Company</span>
+          <input
+            placeholder="Company"
+            value={form.company}
+            onChange={(event) =>
+              updateField('company', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Position"
-          value={form.position}
-          onChange={(event) =>
-            updateField('position', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Position</span>
+          <input
+            placeholder="Position"
+            value={form.position}
+            onChange={(event) =>
+              updateField('position', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="City"
-          value={form.city}
-          onChange={(event) =>
-            updateField('city', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>City</span>
+          <input
+            placeholder="City"
+            value={form.city}
+            onChange={(event) =>
+              updateField('city', event.target.value)
+            }
+          />
+        </label>
 
-        <input
-          placeholder="Country"
-          value={form.country}
-          onChange={(event) =>
-            updateField('country', event.target.value)
-          }
-        />
+        <label className="pnet-field">
+          <span>Country</span>
+          <input
+            placeholder="Country"
+            value={form.country}
+            onChange={(event) =>
+              updateField('country', event.target.value)
+            }
+          />
+        </label>
 
         <label>
           Importance
@@ -444,17 +464,19 @@ export function PeopleManager({
           />
         </label>
 
-        <textarea
-          placeholder="Notes"
-          value={form.notes}
-          onChange={(event) =>
-            updateField('notes', event.target.value)
-          }
-          style={{
-            gridColumn: '1 / -1',
-            minHeight: '90px',
-          }}
-        />
+        <label className="pnet-field pnet-field-full">
+          <span>Notes</span>
+          <textarea
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(event) =>
+              updateField('notes', event.target.value)
+            }
+            style={{
+              minHeight: '90px',
+            }}
+          />
+        </label>
 
         <div
           style={{
@@ -478,7 +500,7 @@ export function PeopleManager({
       </form>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             padding: '12px',
             marginBottom: '18px',
@@ -490,11 +512,11 @@ export function PeopleManager({
       )}
 
       {loading ? (
-        <p className="pnet-state">Loading...</p>
+        <p className="pnet-state" role="status">Loading...</p>
       ) : people.length === 0 ? (
         <p className="pnet-state">No people yet.</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div tabIndex={0} role="region" aria-label="People table" style={{ overflowX: 'auto' }}>
           <table
             style={{
               width: '100%',
@@ -595,30 +617,34 @@ export function PeopleManager({
       )}
 
       {contactChannelsPersonId && (
-        <ContactChannelsManager
-          personId={contactChannelsPersonId}
-          onClose={() =>
-            setContactChannelsPersonId(null)
-          }
-        />
+        <FocusPanel personId={contactChannelsPersonId} label="Contact Channels">
+          <ContactChannelsManager
+            personId={contactChannelsPersonId}
+            onClose={() =>
+              setContactChannelsPersonId(null)
+            }
+          />
+        </FocusPanel>
       )}
 
       {contactEventsPersonId && (
-        <div id="focused-contact-events">
+        <FocusPanel personId={contactEventsPersonId} label="Events / Reminders">
           <ContactEventsManager
             personId={contactEventsPersonId}
             onClose={() => setContactEventsPersonId(null)}
           />
-        </div>
+        </FocusPanel>
       )}
 
       {taxonomyPersonId && (
-        <PersonTaxonomyManager
-          personId={taxonomyPersonId}
-          onClose={() => setTaxonomyPersonId(null)}
-          onChanged={onChanged}
-        />
+        <FocusPanel personId={taxonomyPersonId} label="Categories / Interests">
+          <PersonTaxonomyManager
+            personId={taxonomyPersonId}
+            onClose={() => setTaxonomyPersonId(null)}
+            onChanged={onChanged}
+          />
+        </FocusPanel>
       )}
-    </main>
+    </div>
   );
 }

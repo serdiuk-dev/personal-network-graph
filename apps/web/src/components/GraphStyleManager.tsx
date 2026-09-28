@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useState,
 } from 'react';
 
@@ -157,6 +158,7 @@ function LineEditor({
   onOpacity,
   onWidth,
 }: LineEditorProps) {
+  const colorId = useId();
   return (
     <section
       style={{
@@ -196,8 +198,8 @@ function LineEditor({
           alignItems: 'end',
         }}
       >
-        <label>
-          Color
+        <div>
+          <label htmlFor={colorId}>Color</label>
           <div
             style={{
               display: 'flex', flexWrap: 'wrap',
@@ -207,6 +209,8 @@ function LineEditor({
           >
             <input
               type="color"
+              id={colorId}
+              aria-label={`${title}: Color picker`}
               value={color}
               onChange={(event) =>
                 onColor(
@@ -216,6 +220,7 @@ function LineEditor({
             />
 
             <input
+              aria-label={`${title}: Color hex value`}
               value={color}
               onChange={(event) =>
                 onColor(
@@ -227,12 +232,13 @@ function LineEditor({
               }}
             />
           </div>
-        </label>
+        </div>
 
         <label>
           Opacity: {opacity.toFixed(2)}
           <input
             type="range"
+            aria-label={`${title}: Opacity`}
             min={0}
             max={1}
             step={0.01}
@@ -256,6 +262,7 @@ function LineEditor({
           {widthLabel}
           <input
             type="number"
+            aria-label={`${title}: ${widthLabel}`}
             min={0.1}
             max={10}
             step={0.05}
@@ -441,6 +448,10 @@ export function GraphStyleManager({
   }
 
   async function resetDefaults() {
+    if (saving || !window.confirm(
+      'Reset all graph styles to defaults? This immediately replaces the saved graph styles.',
+    )) return;
+
     setStyles(
       DEFAULT_GRAPH_STYLES,
     );
@@ -452,14 +463,14 @@ export function GraphStyleManager({
 
   if (loading) {
     return (
-      <main className="pnet-page">
+      <div className="pnet-page" role="status">
         Loading graph styles...
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <h1
         style={{
           marginBottom: '6px',
@@ -484,13 +495,13 @@ export function GraphStyleManager({
       </p>
 
       {error && (
-        <p className="pnet-error" style={{ color: '#b42318' }}>
+        <p className="pnet-error" role="alert" style={{ color: '#b42318' }}>
           {error}
         </p>
       )}
 
       {message && (
-        <p style={{ color: '#0f766e' }}>
+        <p role="status" style={{ color: '#0f766e' }}>
           {message}
         </p>
       )}
@@ -821,6 +832,6 @@ export function GraphStyleManager({
           Reset defaults
         </button>
       </div>
-    </main>
+    </div>
   );
 }

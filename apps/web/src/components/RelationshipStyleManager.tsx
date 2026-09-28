@@ -293,6 +293,10 @@ export function RelationshipStyleManager({
   }
 
   async function resetStyle() {
+    if (!selected || saving || !window.confirm(
+      `Reset the saved edge style for ${personName(selected.fromId)} → ${personName(selected.toId)} to graph defaults?`,
+    )) return;
+
     try {
       const updated =
         await persistStyle(
@@ -326,14 +330,14 @@ export function RelationshipStyleManager({
 
   if (loading) {
     return (
-      <main className="pnet-page">
+      <div className="pnet-page" role="status">
         Loading edge styles...
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="pnet-page">
+    <div className="pnet-page">
       <h1
         style={{
           marginBottom: '6px',
@@ -354,7 +358,7 @@ export function RelationshipStyleManager({
       </p>
 
       {error && (
-        <div className="pnet-error"
+        <div className="pnet-error" role="alert"
           style={{
             marginBottom: '18px',
             color: '#b42318',
@@ -365,7 +369,7 @@ export function RelationshipStyleManager({
       )}
 
       {message && (
-        <div
+        <div role="status"
           style={{
             marginBottom: '18px',
             color: '#0f766e',
@@ -481,25 +485,28 @@ export function RelationshipStyleManager({
                   Custom color
                 </label>
 
-                <input
-                  type="color"
-                  value={color}
-                  disabled={
-                    !useCustomColor
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setColor(
-                      event.target
-                        .value,
-                    )
-                  }
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                  }}
-                />
+                <label className="pnet-field">
+                  <span>Edge color</span>
+                  <input
+                    type="color"
+                    value={color}
+                    disabled={
+                      !useCustomColor
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      setColor(
+                        event.target
+                          .value,
+                      )
+                    }
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                    }}
+                  />
+                </label>
 
                 <div
                   style={{
@@ -543,32 +550,35 @@ export function RelationshipStyleManager({
                   Custom width
                 </label>
 
-                <input
-                  type="number"
-                  min="0.25"
-                  max="8"
-                  step="0.25"
-                  value={width}
-                  disabled={
-                    !useCustomWidth
-                  }
-                  onChange={(
-                    event,
-                  ) =>
-                    setWidth(
-                      Number(
-                        event.target
-                          .value,
-                      ),
-                    )
-                  }
-                  style={{
-                    width: '100%',
-                    boxSizing:
-                      'border-box',
-                    padding: '10px',
-                  }}
-                />
+                <label className="pnet-field">
+                  <span>Edge width</span>
+                  <input
+                    type="number"
+                    min="0.25"
+                    max="8"
+                    step="0.25"
+                    value={width}
+                    disabled={
+                      !useCustomWidth
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      setWidth(
+                        Number(
+                          event.target
+                            .value,
+                        ),
+                      )
+                    }
+                    style={{
+                      width: '100%',
+                      boxSizing:
+                        'border-box',
+                      padding: '10px',
+                    }}
+                  />
+                </label>
 
                 <div
                   style={{
@@ -653,6 +663,6 @@ export function RelationshipStyleManager({
           </>
         )}
       </section>
-    </main>
+    </div>
   );
 }
