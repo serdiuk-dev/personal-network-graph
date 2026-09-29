@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { FormEvent, useEffect, useState } from 'react';
 
 type TaxonomyItem = {
@@ -35,7 +36,7 @@ function TaxonomySection({
     if (!name) return;
 
     try {
-      const response = await fetch(`/api/v1/${type}`, {
+      const response = await apiFetch(`/api/v1/${type}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +78,7 @@ function TaxonomySection({
     if (!name) return;
 
     try {
-      const response = await fetch(`/api/v1/${type}/${id}`, {
+      const response = await apiFetch(`/api/v1/${type}/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +112,7 @@ function TaxonomySection({
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/${type}/${item.id}`,
         {
           method: 'DELETE',
@@ -275,8 +276,8 @@ export function TaxonomyManager({
     try {
       const [categoriesResponse, interestsResponse] =
         await Promise.all([
-          fetch('/api/v1/categories'),
-          fetch('/api/v1/interests'),
+          apiFetch('/api/v1/categories'),
+          apiFetch('/api/v1/interests'),
         ]);
 
       if (!categoriesResponse.ok) {

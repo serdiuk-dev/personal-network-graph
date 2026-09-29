@@ -1,3 +1,4 @@
+import { SignOutButton } from './auth/AuthBoundary';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { NetworkGraph } from './components/NetworkGraph';
 import { NetworkOverview } from './components/NetworkOverview';
@@ -137,6 +138,7 @@ function App() {
         >
           Categories / Interests
         </button>
+        <SignOutButton />
       </nav>
 
       <main id="pnet-content" className="pnet-content"

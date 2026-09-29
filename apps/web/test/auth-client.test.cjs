@@ -1,0 +1,45 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+global.window = { location: { origin: 'https://owner.example.test' } };
+global.BroadcastChannel = undefined;
+const client = require('/tmp/pnet-auth-client/client.js');
+const csrf = 'a'.repeat(64);
+const originalFetch = global.fetch;
+test('WEB session boundary attaches CSRF only to same-origin mutations and clears on 401', async () => {
+  let seen;
+  global.fetch = async (...args) => { seen = args; return Response.json({ authenticated: true, csrf }); };
+  assert.equal(await client.checkSession(), true);
+  await client.apiFetch('/api/v1/people', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal(seen[1].headers.get('X-Pnet-CSRF'), csrf);
+  assert.equal(seen[1].credentials, 'same-origin');
+  assert.equal(seen[1].cache, 'no-store');
+  assert.equal(seen[1].redirect, 'error');
+  await assert.rejects(client.apiFetch('https://evil.example/api/v1/people'));
+  let expired = 0;
+  const remove = client.onSessionExpired(() => expired++);
+  global.fetch = async () => new Response('', { status: 401 });
+  await assert.rejects(client.apiFetch('/api/v1/people'));
+  assert.equal(expired, 1);
+  await assert.rejects(client.apiFetch('/api/v1/people'));
+  remove();
+});
+test('failed logout does not claim revocation, confirmed logout clears the session', async () => {
+  global.fetch = async () => Response.json({ csrf });
+  await client.checkSession();
+  global.fetch = async () => new Response('', { status: 503 });
+  await assert.rejects(client.signOut());
+  global.fetch = async () => Response.json({ ok: true });
+  assert.equal((await client.apiFetch('/api/v1/people')).status, 200);
+  await client.signOut();
+  await assert.rejects(client.apiFetch('/api/v1/people'));
+});
+test('late session checks cannot restore a cleared session', async () => {
+  let resolve;
+  global.fetch = () => new Promise(done => { resolve = done; });
+  const check = client.checkSession();
+  client.clearSession();
+  resolve(Response.json({ csrf }));
+  assert.equal(await check, false);
+  await assert.rejects(client.apiFetch('/api/v1/people'));
+  global.fetch = originalFetch;
+});

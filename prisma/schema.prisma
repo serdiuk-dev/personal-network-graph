@@ -238,3 +238,31 @@ model ReminderDelivery {
   @@index([status])
   @@index([reminderId, status])
 }
+
+model Owner {
+  id Int @id @default(1)
+  login String @unique
+  passwordHash String
+  totpEncrypted String
+  lastTotpStep BigInt @default(-1)
+  version String @default(uuid())
+  recoveryHashes String[]
+  createdAt DateTime @default(now())
+  sessions OwnerSession[]
+}
+
+model OwnerSession {
+  tokenHash String @id
+  ownerId Int @default(1)
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+model AuthAttempt {
+  id String @id
+  hits Int
+  windowStart DateTime
+}

@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { FormEvent, useEffect, useState } from 'react';
 
 type ReminderDelivery = {
@@ -75,8 +76,8 @@ export function ContactEventsManager({
 
     try {
       const [personResponse, eventsResponse] = await Promise.all([
-        fetch(`/api/v1/people/${personId}`),
-        fetch(`/api/v1/people/${personId}/contact-events`),
+        apiFetch(`/api/v1/people/${personId}`),
+        apiFetch(`/api/v1/people/${personId}/contact-events`),
       ]);
 
       if (!personResponse.ok || !eventsResponse.ok) {
@@ -112,7 +113,7 @@ export function ContactEventsManager({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/people/${personId}/contact-events`,
         {
           method: 'POST',
@@ -163,7 +164,7 @@ export function ContactEventsManager({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/contact-events/${id}`,
         { method: 'DELETE' },
       );
@@ -194,7 +195,7 @@ export function ContactEventsManager({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/reminders/${id}`,
         { method: 'DELETE' },
       );
@@ -254,7 +255,7 @@ export function ContactEventsManager({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/contact-events/${id}`,
         {
           method: 'PATCH',
@@ -309,7 +310,7 @@ export function ContactEventsManager({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/reminders/${id}`,
         {
           method: 'PATCH',

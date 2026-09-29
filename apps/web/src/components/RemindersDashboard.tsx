@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { useEffect, useRef, useState } from 'react';
 
 type ReminderChannel = 'TELEGRAM' | 'EMAIL';
@@ -90,7 +91,7 @@ export function RemindersDashboard({
           ? '/api/v1/reminders/upcoming'
           : '/api/v1/reminders/history';
 
-      const response = await fetch(endpoint);
+      const response = await apiFetch(endpoint);
 
       if (!response.ok) {
         throw new Error(
@@ -182,7 +183,7 @@ export function RemindersDashboard({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/reminders/${id}`,
         {
           method: 'PATCH',
@@ -226,7 +227,7 @@ export function RemindersDashboard({
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/reminders/${id}`,
         { method: 'DELETE' },
       );

@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import {
   useEffect,
   useState,
@@ -142,7 +143,7 @@ export function NetworkOverview({
       setError(null);
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           '/api/v1/analytics/network',
         );
 

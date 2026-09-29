@@ -1,3 +1,4 @@
+import { AuthModule } from './auth/auth.module';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -16,6 +17,7 @@ import { MessageRouterModule } from './message-router/message-router.module';
 
 @Module({
   imports: [
+    AuthModule,
     ScheduleModule.forRoot(),
     MessageRouterModule,
     ReminderModule,

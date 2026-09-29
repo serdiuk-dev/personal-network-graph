@@ -19,7 +19,9 @@
     "graphology-metrics": "^2.4.2",
     "nodemailer": "10.0.10",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "argon2": "0.45.1",
+    "otpauth": "9.5.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",

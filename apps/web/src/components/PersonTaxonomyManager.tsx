@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { useEffect, useState } from 'react';
 
 type TaxonomyItem = {
@@ -35,9 +36,9 @@ export function PersonTaxonomyManager({
     try {
       const [personResponse, categoriesResponse, interestsResponse] =
         await Promise.all([
-          fetch(`/api/v1/people/${personId}`),
-          fetch('/api/v1/categories'),
-          fetch('/api/v1/interests'),
+          apiFetch(`/api/v1/people/${personId}`),
+          apiFetch('/api/v1/categories'),
+          apiFetch('/api/v1/interests'),
         ]);
 
       if (
@@ -70,7 +71,7 @@ export function PersonTaxonomyManager({
 
     if (!name) return;
 
-    const response = await fetch('/api/v1/categories', {
+    const response = await apiFetch('/api/v1/categories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export function PersonTaxonomyManager({
 
     if (!name) return;
 
-    const response = await fetch('/api/v1/interests', {
+    const response = await apiFetch('/api/v1/interests', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export function PersonTaxonomyManager({
       (item) => item.id === category.id,
     );
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/v1/people/${person.id}/categories/${category.id}`,
       {
         method: assigned ? 'DELETE' : 'POST',
@@ -141,7 +142,7 @@ export function PersonTaxonomyManager({
       (item) => item.id === interest.id,
     );
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/v1/people/${person.id}/interests/${interest.id}`,
       {
         method: assigned ? 'DELETE' : 'POST',

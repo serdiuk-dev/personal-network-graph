@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import {
   useEffect,
   useMemo,
@@ -117,8 +118,8 @@ export function RelationshipStyleManager({
         peopleResponse,
         relationshipsResponse,
       ] = await Promise.all([
-        fetch('/api/v1/people'),
-        fetch(
+        apiFetch('/api/v1/people'),
+        apiFetch(
           '/api/v1/relationships',
         ),
       ]);
@@ -221,7 +222,7 @@ export function RelationshipStyleManager({
     setMessage(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/relationships/${selected.id}`,
         {
           method: 'PATCH',

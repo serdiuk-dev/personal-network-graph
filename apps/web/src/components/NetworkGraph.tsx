@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import {
   FormEvent,
   useEffect,
@@ -1405,11 +1406,11 @@ export function NetworkGraph({
           analyticsResponse,
           graphStylesResponse,
         ] = await Promise.all([
-          fetch('/api/v1/graph'),
-          fetch(
+          apiFetch('/api/v1/graph'),
+          apiFetch(
             '/api/v1/analytics/network',
           ),
-          fetch(
+          apiFetch(
             '/api/v1/graph-styles',
           ),
         ]);

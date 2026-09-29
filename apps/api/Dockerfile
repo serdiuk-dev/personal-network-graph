@@ -11,6 +11,7 @@ RUN npx prisma generate --schema=./prisma/schema.prisma
 
 COPY apps/api/nest-cli.json apps/api/tsconfig.json ./
 COPY apps/api/src ./src
+COPY apps/api/test ./test
 
 RUN npm run build
 

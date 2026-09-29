@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { focusFirstField } from './FocusPanel';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
@@ -60,8 +61,8 @@ export function RelationshipsManager({
     try {
       const [peopleResponse, relationshipsResponse] =
         await Promise.all([
-          fetch('/api/v1/people'),
-          fetch('/api/v1/relationships'),
+          apiFetch('/api/v1/people'),
+          apiFetch('/api/v1/relationships'),
         ]);
 
       if (!peopleResponse.ok) {
@@ -156,7 +157,7 @@ export function RelationshipsManager({
     };
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         editingId
           ? `/api/v1/relationships/${editingId}`
           : '/api/v1/relationships',
@@ -210,7 +211,7 @@ export function RelationshipsManager({
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/relationships/${relationship.id}`,
         {
           method: 'DELETE',

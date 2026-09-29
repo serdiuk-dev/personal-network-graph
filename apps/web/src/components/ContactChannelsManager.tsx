@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { focusFirstField } from './FocusPanel';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
@@ -99,8 +100,8 @@ export function ContactChannelsManager({
       setLoading(true);
 
       const [personResponse, channelsResponse] = await Promise.all([
-        fetch(`/api/v1/people/${personId}`),
-        fetch(`/api/v1/people/${personId}/contact-channels`),
+        apiFetch(`/api/v1/people/${personId}`),
+        apiFetch(`/api/v1/people/${personId}/contact-channels`),
       ]);
 
       if (!personResponse.ok) {
@@ -190,7 +191,7 @@ export function ContactChannelsManager({
     };
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         editingId
           ? `/api/v1/contact-channels/${editingId}`
           : `/api/v1/people/${personId}/contact-channels`,
@@ -232,7 +233,7 @@ export function ContactChannelsManager({
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/contact-channels/${channel.id}`,
         {
           method: 'DELETE',

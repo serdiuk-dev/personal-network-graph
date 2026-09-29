@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import { focusFirstField, FocusPanel } from './FocusPanel';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { ContactChannelsManager } from './ContactChannelsManager';
@@ -80,7 +81,7 @@ export function PeopleManager({
     try {
       setLoading(true);
 
-      const response = await fetch('/api/v1/people');
+      const response = await apiFetch('/api/v1/people');
 
       if (!response.ok) {
         throw new Error(`People API returned HTTP ${response.status}`);
@@ -206,7 +207,7 @@ export function PeopleManager({
     };
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         editingId
           ? `/api/v1/people/${editingId}`
           : '/api/v1/people',
@@ -249,7 +250,7 @@ export function PeopleManager({
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/v1/people/${person.id}`,
         {
           method: 'DELETE',

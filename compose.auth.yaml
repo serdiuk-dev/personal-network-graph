@@ -1,0 +1,12 @@
+# Explicitly include with compose.yaml and compose.override.yaml after the migration gate.
+# Values are supplied by a root-owned, untracked operator environment file.
+services:
+  api:
+    environment:
+      PNET_PUBLIC_ORIGIN: ${PNET_PUBLIC_ORIGIN:?Set the HTTPS origin without trailing slash}
+      PNET_AUTH_KEY_FILE: /run/secrets/pnet_auth_key
+    secrets:
+      - pnet_auth_key
+secrets:
+  pnet_auth_key:
+    file: ${PNET_AUTH_KEY_FILE:?Set the absolute host path to the private auth key}

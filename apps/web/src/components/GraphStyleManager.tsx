@@ -1,3 +1,4 @@
+import { apiFetch } from '../auth/client';
 import {
   useEffect,
   useId,
@@ -340,7 +341,7 @@ export function GraphStyleManager({
 
     try {
       const response =
-        await fetch(
+        await apiFetch(
           '/api/v1/graph-styles',
         );
 
@@ -396,7 +397,7 @@ export function GraphStyleManager({
 
     try {
       const response =
-        await fetch(
+        await apiFetch(
           '/api/v1/graph-styles',
           {
             method: 'PATCH',

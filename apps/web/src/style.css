@@ -118,3 +118,14 @@ h1 {
 .pnet-view-switch button[aria-pressed="true"]:hover {
   color: #fff; background: #334155;
 }
+
+/* Owner authentication: same responsive and keyboard baseline as the application. */
+.pnet-auth { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+.pnet-auth-card { width: min(100%, 440px); min-width: 0; padding: 24px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; color: #172033; }
+.pnet-auth-card h1 { margin-top: 0; }
+.pnet-auth-card form { display: flex; flex-direction: column; gap: 12px; }
+.pnet-auth-card input { width: 100%; min-width: 0; }
+.pnet-auth-card p { overflow-wrap: anywhere; }
+.pnet-auth-card [role="alert"] { color: #b91c1c; }
+.pnet-auth-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pnet-auth-actions [role="alert"] { max-width: 24rem; }
