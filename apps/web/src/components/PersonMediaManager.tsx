@@ -1,3 +1,4 @@
+import { CONTACT_ICONS, createContactIconFile } from './contactIcons';
 import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../auth/client';
 
@@ -74,6 +75,18 @@ export function PersonMediaManager({ personId, personName, onClose }: {
     setSelected(file);
   }
 
+  async function chooseIcon(id: string) {
+    if (busy || loading || !lifetime.current) return;
+    const signal = lifetime.current.signal;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const file = await createContactIconFile(id);
+      if (!signal.aborted) choose(file);
+    } catch (err) {
+      if (!signal.aborted) setError(err instanceof Error ? err.message : 'Unable to prepare icon.');
+    } finally { if (!signal.aborted) setBusy(false); }
+  }
+
   async function save() {
     if (!selected || busy || !lifetime.current) return;
     const signal = lifetime.current.signal;
@@ -133,6 +146,22 @@ export function PersonMediaManager({ personId, personName, onClose }: {
       </button>
       <span role="status">{selected ? selected.name : 'No file selected'}</span>
     </div>
+    <fieldset className="pnet-icon-picker" disabled={busy || loading}>
+      <legend>Choose a built-in icon</legend>
+      <div className="pnet-icon-grid">
+        {CONTACT_ICONS.map(icon => (
+          <button key={icon.id} type="button" onClick={() => void chooseIcon(icon.id)}
+            aria-label={`Choose ${icon.label} icon`}>
+            <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false">
+              <rect width="24" height="24" fill="#eff6ff" />
+              <path d={icon.path} fill="#2563eb" fillRule="evenodd" />
+            </svg>
+            <span>{icon.label}</span>
+          </button>
+        ))}
+      </div>
+      <p>Select an icon, then save to apply it.</p>
+    </fieldset>
     <div className="pnet-media-actions">
       <button type="button" disabled={!selected || busy || loading} onClick={save}>{busy ? 'Please wait…' : 'Save photo / icon'}</button>
       {selected && <button type="button" disabled={busy} onClick={clearSelection}>Cancel selection</button>}

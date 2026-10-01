@@ -165,3 +165,10 @@ h1 {
 }
 .pnet-graph-media-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
 .pnet-graph-media-dialog .pnet-media { margin: 0; border: 0; }
+
+/* Bundled contact icon picker. */
+.pnet-icon-picker { min-width: 0; margin: 16px 0 0; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; }
+.pnet-icon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
+.pnet-icon-grid button { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pnet-icon-grid svg { flex: none; border-radius: 50%; }
+.pnet-icon-picker p { margin-bottom: 0; font-size: 14px; }

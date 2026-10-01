@@ -1,5 +1,26 @@
 # Dynamic Network Graph — accepted scope
 
+## Built-in icons accepted — 2026-10-01
+
+Current checkpoint; supersedes earlier statements that the icon catalogue is pending.
+
+- Six built-in icons: Person, Heart, Star, Home, Work and Book.
+- Selection creates a preview; explicit Save applies the icon.
+- Icons use the existing private photo upload and storage workflow.
+- Uploaded photos, built-in icons and graph initials are implemented.
+- All new interface text is English.
+- Docker WEB build and TypeScript validation passed.
+- Production availability checks passed with zero container restarts.
+- User confirmed the interface works after deployment.
+- API, database schema, private storage and owner authorization are unchanged.
+
+Current production images:
+API: sha256:f5d91562689bf2d22685326d2c36021797c3fe84f7c49703010a1ccf4e3835ec
+WEB: sha256:b13dfd86fc3cf6ef44d2a90ad0914a3d6d73110a3c5a6d14e6d3ab93628fceaa
+
+The planned contact-media interface scope is complete.
+v0.42.0 remains open and untagged pending final release review.
+
 ## Initials fallback accepted — 2026-10-01
 
 Current checkpoint; supersedes earlier statements that initials are missing.
