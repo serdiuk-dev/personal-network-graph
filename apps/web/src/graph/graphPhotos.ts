@@ -78,13 +78,19 @@ export function createGraphPhotos(onChange: () => void, dependencies: {
   };
 }
 
+export function contactInitials(firstName: string, lastName: string | null = null): string {
+  const parts = [firstName, lastName ?? ''].join(' ').normalize('NFC').match(/[\p{L}\p{N}]+/gu) ?? [];
+  if (!parts.length) return '?';
+  const words = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : [parts[0]];
+  return Array.from(words.map(word => Array.from(word!)[0]!.toUpperCase()).join('')).slice(0, 2).join('');
+}
+
 export type PhotoNode = {
-  id: string; x: number; y: number; radius: number;
+  id: string; x: number; y: number; radius: number; initials?: string;
   data: { zIndex: number; color: string; label?: string | null };
 };
 
 export function drawGraphPhotos(canvas: CanvasRenderingContext2D, nodes: PhotoNode[], images: ReadonlyMap<string, ImageBitmap>) {
-  if (!images.size) return;
   // Repaint ALL visible disks in the same depth order, so a photo never floats
   // over a nearer node without a photo. Labels are drawn afterwards by the caller.
   const ordered = [...nodes].sort((a, b) => a.data.zIndex - b.data.zIndex || a.id.localeCompare(b.id));
@@ -107,6 +113,16 @@ export function drawGraphPhotos(canvas: CanvasRenderingContext2D, nodes: PhotoNo
       const side = Math.min(bitmap.width, bitmap.height);
       canvas.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2,
         side, side, node.x - radius, node.y - radius, radius * 2, radius * 2);
+    } else if (!bitmap && node.initials && radius >= 7) {
+      canvas.beginPath();
+      canvas.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      canvas.clip();
+      canvas.globalAlpha = node.data.label ? 1 : 0.18;
+      canvas.font = `600 ${Math.min(24, radius * 0.95)}px system-ui, sans-serif`;
+      canvas.textAlign = 'center'; canvas.textBaseline = 'middle';
+      canvas.lineWidth = 2; canvas.strokeStyle = '#17233d'; canvas.fillStyle = '#ffffff';
+      canvas.strokeText(node.initials, node.x, node.y, radius * 1.6);
+      canvas.fillText(node.initials, node.x, node.y, radius * 1.6);
     }
     canvas.restore();
   }

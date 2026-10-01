@@ -1,3 +1,4 @@
+import { contactInitials } from '../graph/graphPhotos';
 import { PersonMediaManager } from './PersonMediaManager';
 import { installGraphInteraction, type GraphInteraction } from '../graph/graphInteraction';
 import { depthForCircle } from '../graph/graphGeometry';
@@ -1590,6 +1591,7 @@ export function NetworkGraph({
                   personDisplayLabel(
                     node,
                   ),
+                initials: contactInitials(node.firstName, node.lastName),
                 forceLabel: false,
                 x: position.x,
                 y: position.y,

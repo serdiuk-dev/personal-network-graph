@@ -69,3 +69,33 @@ test('photo disks respect depth, circular clipping, central crop and selection f
   drawGraphPhotos(context, nodes, new Map([['far', image]]));
   assert.equal(events.find(e => e[0] === 'image')[1], 0.18);
 });
+
+test('initials support names in different scripts', () => {
+  const { contactInitials } = require('/tmp/pnet-graph-photo-test/graph/graphPhotos.js');
+  assert.equal(contactInitials('Oleksandr', 'Serdiuk'), 'OS');
+  assert.equal(contactInitials('Любимая'), 'Л');
+  assert.equal(contactInitials('  Anna Maria  '), 'AM');
+  assert.equal(contactInitials('Émile', 'Zola'), 'ÉZ');
+  assert.equal(contactInitials('李', '明'), '李明');
+  assert.equal(contactInitials(''), '?');
+});
+test('initials render without photos; photos take priority; tiny nodes omit text', () => {
+  const drawn = [];
+  const ctx = {
+    save() {}, restore() {}, beginPath() {}, arc() {}, fill() {}, clip() {},
+    strokeText() {}, fillText(text) { drawn.push(text); },
+    drawImage() { drawn.push('PHOTO'); }
+  };
+  const node = {
+    id: 'a', x: 0, y: 0, radius: 20, initials: 'OS',
+    data: { zIndex: 1, color: '#123456', label: 'Name' }
+  };
+  drawGraphPhotos(ctx, [node], new Map());
+  assert.deepEqual(drawn, ['OS']);
+  drawn.length = 0;
+  drawGraphPhotos(ctx, [node], new Map([['a', bitmap()]]));
+  assert.deepEqual(drawn, ['PHOTO']);
+  drawn.length = 0;
+  drawGraphPhotos(ctx, [{ ...node, radius: 4 }], new Map());
+  assert.deepEqual(drawn, []);
+});

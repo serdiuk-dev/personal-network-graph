@@ -63,7 +63,7 @@ export function installGraphInteraction(renderer: Sigma, graph: Graph, container
     canvas.clearRect(0, 0, width, height);
     canvas.font = '500 11px Inter, system-ui, sans-serif';
     canvas.textBaseline = 'middle';
-    const nodes = visible().map(id => ({ ...disk(id), data: renderer.getNodeDisplayData(id)! }));
+    const nodes = visible().map(id => ({ ...disk(id), initials: graph.getNodeAttribute(id, 'initials') as string | undefined, data: renderer.getNodeDisplayData(id)! }));
     // Request only nodes currently intersecting the viewport. Coordinates remain
     // CSS pixels; the existing Retina transform applies to both photos and labels.
     const inView = nodes.filter(node => node.x + node.radius >= 0 && node.y + node.radius >= 0
