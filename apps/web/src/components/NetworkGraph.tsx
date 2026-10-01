@@ -1,3 +1,5 @@
+import { installGraphInteraction, type GraphInteraction } from '../graph/graphInteraction';
+import { depthForCircle } from '../graph/graphGeometry';
 import { apiFetch } from '../auth/client';
 import {
   FormEvent,
@@ -577,10 +579,10 @@ function installProdigyVisualLayer(
     },
   );
 
-  hub.textContent = 'Я';
+  hub.textContent = 'Me';
 
   hubLayer.appendChild(hub);
-  container.appendChild(hubLayer);
+  container.insertBefore(hubLayer, renderer.getCanvases().nodes);
 
   const update = () => {
     const center =
@@ -692,17 +694,11 @@ function buildRadialPositions(
     const group = [...groups[circle]].sort(
       (a, b) =>
         b.importance - a.importance ||
-        a.label.localeCompare(b.label),
+        a.label.localeCompare(b.label) || a.id.localeCompare(b.id),
     );
 
-    const goldenAngle =
-      Math.PI *
-      (3 - Math.sqrt(5));
-
     group.forEach((node, index) => {
-      const angle =
-        angleOffsets[circle] +
-        index * goldenAngle;
+      const angle = angleOffsets[circle] + index * Math.PI * 2 / Math.max(1, group.length);
 
       const radius =
         PRODIGY_LIGHT_THEME.radial
@@ -726,6 +722,8 @@ export function NetworkGraph({
 
   const sigmaRef =
     useRef<Sigma | null>(null);
+
+  const interactionRef = useRef<GraphInteraction | null>(null);
 
   const graphRef =
     useRef<Graph | null>(null);
@@ -850,11 +848,9 @@ export function NetworkGraph({
               color:
                 PRODIGY_LIGHT_THEME.radial
                   .selfColor,
-              size:
-                PRODIGY_LIGHT_THEME.radial
-                  .selfSize,
-              highlighted: true,
-              zIndex: 4,
+              size: 0,
+              highlighted: false,
+              zIndex: 0,
             };
           }
 
@@ -1021,6 +1017,14 @@ export function NetworkGraph({
           };
         },
       );
+
+    const baseReducer = renderer.getSetting('nodeReducer')!;
+    const ranks = new Map([...dataRef.current].sort((a, b) => a.id.localeCompare(b.id)).map((person, index) => [person.id, index]));
+    renderer.setSetting('nodeReducer', (id, attributes) => ({
+      ...baseReducer(id, attributes),
+      highlighted: false,
+      zIndex: id === SELF_NODE_ID ? 0 : depthForCircle(String(attributes.networkCircle)) * (dataRef.current.length + 1) + (ranks.get(id) ?? 0),
+    }));
 
     renderer.setSetting(
       'edgeReducer',
@@ -1395,6 +1399,10 @@ export function NetworkGraph({
     let renderer: Sigma | null =
       null;
 
+    let disposed = false;
+    const abort = new AbortController();
+    let interaction: GraphInteraction | null = null;
+
     let disposeProdigyLayer:
       (() => void) | null =
       null;
@@ -1406,12 +1414,12 @@ export function NetworkGraph({
           analyticsResponse,
           graphStylesResponse,
         ] = await Promise.all([
-          apiFetch('/api/v1/graph'),
+          apiFetch('/api/v1/graph', { signal: abort.signal }),
           apiFetch(
-            '/api/v1/analytics/network',
+            '/api/v1/analytics/network', { signal: abort.signal },
           ),
           apiFetch(
-            '/api/v1/graph-styles',
+            '/api/v1/graph-styles', { signal: abort.signal },
           ),
         ]);
 
@@ -1438,6 +1446,7 @@ export function NetworkGraph({
             ? await graphStylesResponse.json()
             : DEFAULT_GRAPH_STYLES;
 
+        if (disposed) return;
         graphStyleRef.current = {
           ...DEFAULT_GRAPH_STYLES,
           ...graphStyles,
@@ -1572,7 +1581,7 @@ export function NetworkGraph({
                   personDisplayLabel(
                     node,
                   ),
-                forceLabel: true,
+                forceLabel: false,
                 x: position.x,
                 y: position.y,
                 size:
@@ -1719,6 +1728,7 @@ export function NetworkGraph({
           graph,
           containerRef.current,
           {
+            renderLabels: false,
             renderEdgeLabels:
               showEdgeLabels,
 
@@ -1801,14 +1811,11 @@ export function NetworkGraph({
         setMeta(data.meta);
         setError(null);
 
-        setTimeout(
-          () =>
-            applyGraphView(
-              null,
-            ),
-          0,
-        );
+        applyGraphView(null);
+        interaction = installGraphInteraction(renderer, graph, containerRef.current, SELF_NODE_ID, selectNode);
+        interactionRef.current = interaction;
       } catch (err) {
+        if (disposed) return;
         setError(
           err instanceof Error
             ? err.message
@@ -1820,6 +1827,10 @@ export function NetworkGraph({
     loadGraph();
 
     return () => {
+      disposed = true;
+      abort.abort();
+      interaction?.dispose();
+      if (interactionRef.current === interaction) interactionRef.current = null;
       disposeProdigyLayer?.();
       renderer?.kill();
 
@@ -1882,6 +1893,10 @@ export function NetworkGraph({
           >
             Refresh
           </button>
+          <button type="button" onClick={() => interactionRef.current?.restore()}>
+            Restore layout
+          </button>
+          <span id="graph-drag-help">Drag to explore. Returns after 3 s unless held or hovered. Escape restores now.</span>
 
           <label>
             Color:{' '}
@@ -2199,6 +2214,10 @@ export function NetworkGraph({
           <div
             className="pnet-graph-canvas"
             ref={containerRef}
+            tabIndex={0}
+            role="region"
+            aria-label="Interactive personal network graph"
+            aria-describedby="graph-drag-help"
             style={{
               background:
                 PRODIGY_LIGHT_THEME.canvas.background,
@@ -2211,7 +2230,8 @@ export function NetworkGraph({
       </section>
 
       {selectedNode && (
-        <aside className="pnet-graph-details">
+        <aside className="pnet-graph-details" aria-label="Contact overview">
+          <div className="pnet-graph-details-body">
           <h2>
             {selectedNode.label}
           </h2>
@@ -2327,11 +2347,14 @@ export function NetworkGraph({
             <p>None</p>
           )}
 
+          </div>
           <button
+            className="pnet-graph-details-close"
             type="button"
-            onClick={() =>
-              selectNode(null)
-            }
+            onClick={() => {
+              selectNode(null);
+              containerRef.current?.focus({ preventScroll: true });
+            }}
           >
             Close
           </button>

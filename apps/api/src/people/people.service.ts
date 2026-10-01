@@ -1,3 +1,4 @@
+import { PersonMediaService } from '../person-media/person-media.service';
 import {
   ConflictException,
   Injectable,
@@ -10,7 +11,7 @@ import { UpdatePersonDto } from './dto/update-person.dto';
 
 @Injectable()
 export class PeopleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly media: PersonMediaService) {}
 
   private async ensurePersonExists(id: string) {
     const person = await this.prisma.person.findUnique({
@@ -76,11 +77,7 @@ export class PeopleService {
   }
 
   async remove(id: string) {
-    await this.ensurePersonExists(id);
-
-    return this.prisma.person.delete({
-      where: { id },
-    });
+    return this.media.removePerson(id);
   }
 
   async addCategory(personId: string, categoryId: string) {

@@ -2,7 +2,7 @@ FROM node:24-alpine AS build
 
 WORKDIR /app
 
-COPY apps/api/package.json apps/api/package-lock.json ./
+COPY --chmod=0644 apps/api/package.json apps/api/package-lock.json ./
 RUN npm ci
 
 COPY prisma ./prisma
@@ -22,13 +22,18 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY apps/api/package.json apps/api/package-lock.json ./
+COPY --chmod=0644 apps/api/package.json apps/api/package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/dist ./dist
 
+RUN mkdir -p /app/private-media && chown node:node /app/private-media && chmod 700 /app/private-media
+
 USER node
+
+# Fail the build if the runtime user cannot load the application.
+RUN node -e "require('./package.json'); require('./dist/app.module.js'); require('sharp')"
 
 EXPOSE 3000
 

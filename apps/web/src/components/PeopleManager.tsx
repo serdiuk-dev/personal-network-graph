@@ -1,3 +1,4 @@
+import { PersonMediaManager } from './PersonMediaManager';
 import { apiFetch } from '../auth/client';
 import { focusFirstField, FocusPanel } from './FocusPanel';
 import { FormEvent, useEffect, useRef, useState } from 'react';
@@ -67,6 +68,7 @@ export function PeopleManager({
   focusPersonId,
   onFocusConsumed,
 }: PeopleManagerProps) {
+  const [mediaPersonId, setMediaPersonId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [people, setPeople] = useState<Person[]>([]);
   const [form, setForm] = useState<PersonForm>(emptyForm);
@@ -266,6 +268,7 @@ export function PeopleManager({
       if (editingId === person.id) {
         resetForm();
       }
+      if (mediaPersonId === person.id) setMediaPersonId(null);
 
       await loadPeople();
       onChanged();
@@ -565,6 +568,10 @@ export function PeopleManager({
                   <td>{person.importance}/5</td>
 
                   <td>
+                    <button type="button" onClick={() => setMediaPersonId(person.id)}>
+                      Photo / Icon
+                    </button>
+                    {' '}
                     <button
                       type="button"
                       onClick={() => startEdit(person)}
@@ -615,6 +622,17 @@ export function PeopleManager({
             </tbody>
           </table>
         </div>
+      )}
+
+      {mediaPersonId && (
+        <FocusPanel personId={mediaPersonId} label="Photo / Icon">
+          <PersonMediaManager
+            key={mediaPersonId}
+            personId={mediaPersonId}
+            personName={people.filter(person => person.id === mediaPersonId).map(person => [person.firstName, person.lastName].filter(Boolean).join(' '))[0] || 'Contact'}
+            onClose={() => setMediaPersonId(null)}
+          />
+        </FocusPanel>
       )}
 
       {contactChannelsPersonId && (

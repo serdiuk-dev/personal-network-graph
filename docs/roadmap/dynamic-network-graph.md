@@ -1,9 +1,62 @@
 # Dynamic Network Graph — accepted scope
 
+## Accepted mobile correction — 2026-10-01
+
+Current checkpoint; supersedes earlier pending checks where stated below.
+
+- Mobile contact overview opens as a bottom panel at widths up to 900px.
+- Details scroll independently; the English Close button remains visible.
+- Desktop retains the right-hand contact overview.
+- Docker WEB build and TypeScript validation passed.
+- User accepted the mobile correction after deployment.
+- Paired database/media backup checksums and isolated restore passed.
+- Restored photo hashes, permissions and contact linkage passed (one photo).
+- API container recreation retained the same image, media mounts, photo hashes
+  and permissions; WEB/DB container fingerprints were unchanged.
+- User confirmed the photo remained available after recreation.
+- Backup/restore evidence: /opt/pnet-backups/v042-db-media-20261001T044149692401Z.
+- This verifies a local backup and restore; scheduled/off-server backup is not
+  claimed to be configured.
+
+Current production images:
+API: sha256:f5d91562689bf2d22685326d2c36021797c3fe84f7c49703010a1ccf4e3835ec
+WEB: sha256:9a7894a6e3620f2e05ca643e29a836818c4a0ec1f8170d33484d909479d725fe
+
+Release remains untagged. Built-in icons, initials fallback and direct photo-editor
+entry from graph details remain unresolved scope items, not completed features.
+
+## Current checkpoint — 2026-09-30
+
+v0.42.0 now includes dynamic graph interactions AND private contact imagery.
+The user accepted Retina labels, the three-second return, graph photos and English UI.
+The release remains open pending the remaining checks in ../releases/v0.42.0.md.
+
+Implemented:
+- Existing Sigma 3 / Graphology stack, bounded disk separation and eased return.
+- Protected server storage, People photo editor and authenticated graph rendering.
+- Canvas circular clipping, color rings, stable depth and ordinary-node fallback.
+- No d3-force or @sigma/node-image dependency was added.
+- No Person media column or Prisma migration was required.
+- The central virtual node is labelled Me; application text must be English.
+
+Still unresolved from the original plan:
+- Built-in icon catalogue, initials fallback and direct graph-details editor entry
+  are not part of the delivered photo patch.
+- Paired DB/media backup/restore and explicit recreation persistence verification
+  remain release checks; do not describe them as completed.
+
+The planning notes below are historical. The implementation decisions and scope
+in this checkpoint supersede conflicting statements about unimplemented photos
+or a mandatory separate v0.43.0 imagery milestone.
+
+## Historical planning and validation notes
+
+Retained for traceability; current status is documented above.
+
 Recorded: 2026-09-28. Reference: user-supplied graph_view.mp4 (about 33 seconds).
-Status: accepted backlog; implementation starts after owner authentication is
-released and verified. Proposed sequence: v0.42.0 interaction/layout, v0.43.0
-contact imagery. Version numbers remain provisional until v0.41.0 closes.
+Status: v0.41.0 owner authentication released and verified. v0.42.0 interaction/
+layout candidate prepared; production visual acceptance pending. v0.43.0 contact
+imagery remains a separate milestone.
 
 ## Reference and interpretation
 
@@ -34,10 +87,11 @@ Person and not an extra account or analytics record.
    focus/selection. Do not promise zero intersections for an arbitrary dense graph.
 5. Retain a stable rest layout and a temporary interaction state. While the pointer
    is held, the dragged node follows it and neighbours yield gently. After release,
-   keep the inspection view while the pointer remains over the active graph;
-   pointer leave with no drag, Escape/Restore layout, or successful relationship
-   save triggers a smooth return. Touch release uses a short idle delay plus an
-   explicit Restore layout action. Never trigger return mid-drag or mid-form edit.
+   a three-second deadline from the last movement triggers smooth return unless
+   the node is held or hovered. Leaving a hovered node after the deadline starts
+   return immediately; leaving earlier waits only the remaining time. Touch uses
+   the same deadline after release. Escape/Restore layout restores immediately.
+   A successful relationship save rebuilds the rest layout. Never trigger return mid-drag or mid-form edit.
 6. With unchanged data, return to the same collision-adjusted rest coordinates;
    after a relationship/contact change, derive a new deterministic rest layout,
    retaining nearby positions where possible. Edges use the same animated endpoint
@@ -115,3 +169,44 @@ visual acceptance against the supplied video and these explicit requirements.
 - https://d3js.org/d3-force/collide
 - https://d3js.org/d3-force/position
 - https://d3js.org/d3-force/simulation
+
+## v0.42.0 implementation decision — 2026-09-29
+
+The candidate keeps the exact existing Sigma 3 / Graphology dependencies. Instead
+of adding d3-force, it uses a bounded viewport-space pairwise disk separation pass,
+small temporary neighbour displacement and cancellable eased interpolation to saved
+rest coordinates. This avoids a continuously running simulation and a new dependency
+for this milestone. The pairwise solver is quadratic; very large networks need a
+separate spatial-index/performance checkpoint.
+
+The radial base distributes each circle evenly, with deterministic importance/name/
+ID ordering. Rest disk spacing is recomputed on idle resize. The API does not provide
+contact creation timestamps, so within-circle paint order uses stable IDs; it does
+not claim chronological ordering. Dragging performs no API mutations. The visual Я
+layer sits below real nodes; hover/selection cannot override the circle paint policy.
+
+Measured labels try four placements and skip labels without a collision-free slot.
+Full names remain available through search/selection. Dense graphs still require
+zoom/pan; the implementation does not guarantee every label fits at every zoom.
+The three-second idle deadline, Escape and Restore layout return to exact saved
+coordinates. Holding/hovering the moved node blocks automatic return. Data refresh rebuilds the rest layout.
+Photo/icon storage and rendering are not part of this patch.
+
+## User correction checkpoint — 2026-09-29
+
+Retina regression: explicitly size the custom label canvas in CSS pixels, then
+size its backing buffer for devicePixelRatio. Labels use 11px normal-medium text
+against 9px circle captions and remain adjacent to their contact. Verify at
+device scale factors 1, 2 and 3, including initial render before any resize.
+
+The 3-second return deadline above replaces the original pointer-leave-only
+behaviour and 1.2-second touch timer. Holding a node past the deadline, releasing
+without leaving it, and then leaving it is an explicit acceptance scenario.
+
+Photo/icon UI is still unimplemented and is the next requested implementation
+patch, not a hidden existing setting. Provide a Photo / Icon section in the
+contact editor and an obvious entry from graph details. Offer bundled icons,
+Choose photo (desktop/mobile file picker), preview, replace and remove. Persist
+the choice on the server across devices; retain circular clipping and depth order.
+The private imagery validation, authorization and backup requirements above remain
+mandatory. Do not mark the photo/icon request complete with browser-only storage.

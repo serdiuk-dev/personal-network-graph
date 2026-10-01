@@ -1,0 +1,10 @@
+# Always layer AFTER compose.yaml, compose.override.yaml and compose.auth.yaml.
+# Private API-only storage: no nginx mount and no public static route.
+services:
+  api:
+    environment:
+      PNET_MEDIA_DIR: /app/private-media
+    volumes:
+      - contact_media:/app/private-media
+volumes:
+  contact_media:

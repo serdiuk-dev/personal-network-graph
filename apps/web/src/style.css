@@ -129,3 +129,29 @@ h1 {
 .pnet-auth-card [role="alert"] { color: #b91c1c; }
 .pnet-auth-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .pnet-auth-actions [role="alert"] { max-width: 24rem; }
+
+/* Private contact media editor; preserves transparent icon pixels. */
+.pnet-media { padding: 20px; border: 1px solid #d6e1e8; border-radius: 12px; margin-top: 20px; }
+.pnet-media-preview { width: min(256px, 100%); aspect-ratio: 1; display: grid; place-items: center; border: 1px solid #d6e1e8; border-radius: 12px; overflow: hidden; margin: 16px 0; background: #f3f6f8; }
+.pnet-media-preview img { width: 100%; height: 100%; object-fit: contain; }
+.pnet-media-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.pnet-media input[type="file"] { max-width: 100%; }
+
+/* Mobile contact overview: scroll content independently; always expose Close. */
+@media (max-width: 900px) {
+  .pnet-graph-details {
+    position: fixed; z-index: 100; left: 8px; right: 8px; bottom: 0;
+    width: auto; min-height: 0; max-height: 50vh; max-height: 50dvh;
+    display: flex; flex-direction: column; overflow: hidden;
+    padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border: 1px solid #cbd5e1; border-radius: 16px 16px 0 0;
+    background: #fff; box-shadow: 0 -4px 20px rgba(23, 35, 61, 0.15);
+  }
+  .pnet-graph-details-body {
+    min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    touch-action: pan-y; padding: 4px 0 12px;
+  }
+  .pnet-graph-details-close {
+    flex: none; width: 100%; min-height: 44px; margin-top: 8px;
+  }
+}
