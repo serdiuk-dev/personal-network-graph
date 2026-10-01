@@ -1,5 +1,24 @@
 # Contact Photo / Icon
 
+## Graph photo editor accepted — 2026-10-01
+
+Current checkpoint; supersedes earlier statements that graph editor entry is missing.
+
+- Contact overview now includes Photo / Icon on desktop and mobile.
+- The button opens the existing private media editor in a modal dialog.
+- Saving and closing the editor refreshes the graph image.
+- Close returns keyboard focus to the graph.
+- Docker WEB build, TypeScript and post-deployment availability checks passed.
+- User confirmed the complete workflow works on both devices.
+- API, database schema, private storage and owner authorization are unchanged.
+
+Current production images:
+API: sha256:f5d91562689bf2d22685326d2c36021797c3fe84f7c49703010a1ccf4e3835ec
+WEB: sha256:ff080cf720d6b0a517352b7cfb4585ee28cd0935033d1a953b42ca6c74f72c61
+
+Remaining interface scope: built-in icon catalogue and initials fallback.
+v0.42.0 remains open and untagged.
+
 ## Accepted mobile correction — 2026-10-01
 
 Current checkpoint; supersedes earlier pending checks where stated below.

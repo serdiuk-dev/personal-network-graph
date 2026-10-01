@@ -155,3 +155,13 @@ h1 {
     flex: none; width: 100%; min-height: 44px; margin-top: 8px;
   }
 }
+
+/* Graph entry to the existing private media editor. */
+.pnet-graph-media-dialog {
+  width: min(560px, calc(100vw - 24px)); max-width: calc(100vw - 24px);
+  max-height: 85vh; max-height: 85dvh; overflow-y: auto;
+  padding: 0; border: 1px solid #cbd5e1; border-radius: 12px;
+  background: #fff; color: #17233d;
+}
+.pnet-graph-media-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
+.pnet-graph-media-dialog .pnet-media { margin: 0; border: 0; }

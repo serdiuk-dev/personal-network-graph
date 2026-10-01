@@ -1,3 +1,4 @@
+import { PersonMediaManager } from './PersonMediaManager';
 import { installGraphInteraction, type GraphInteraction } from '../graph/graphInteraction';
 import { depthForCircle } from '../graph/graphGeometry';
 import { apiFetch } from '../auth/client';
@@ -751,6 +752,14 @@ export function NetworkGraph({
 
   const [selectedNode, setSelectedNode] =
     useState<GraphNode | null>(null);
+  const [mediaContact, setMediaContact] = useState<GraphNode | null>(null);
+  const mediaDialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (mediaContact && mediaDialogRef.current && !mediaDialogRef.current.open) {
+      mediaDialogRef.current.showModal();
+    }
+  }, [mediaContact]);
+
 
   const [search, setSearch] =
     useState('');
@@ -2232,6 +2241,9 @@ export function NetworkGraph({
       {selectedNode && (
         <aside className="pnet-graph-details" aria-label="Contact overview">
           <div className="pnet-graph-details-body">
+          <button type="button" onClick={() => setMediaContact(selectedNode)}>
+            Photo / Icon
+          </button>
           <h2>
             {selectedNode.label}
           </h2>
@@ -2359,6 +2371,21 @@ export function NetworkGraph({
             Close
           </button>
         </aside>
+      )}
+      {mediaContact && (
+        <dialog ref={mediaDialogRef} className="pnet-graph-media-dialog"
+          aria-label={`Photo / Icon: ${mediaContact.label}`}
+          onCancel={event => event.preventDefault()}>
+          <PersonMediaManager key={mediaContact.id}
+            personId={mediaContact.id} personName={mediaContact.label}
+            onClose={() => {
+              mediaDialogRef.current?.close();
+              setMediaContact(null);
+              setSelectedNode(null);
+              setReloadKey(value => value + 1);
+              containerRef.current?.focus({ preventScroll: true });
+            }} />
+        </dialog>
       )}
     </div>
   );
