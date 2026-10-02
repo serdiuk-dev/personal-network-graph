@@ -1,0 +1,17 @@
+[Unit]
+Description=Recover PNet API after an interrupted private backup
+Requires=docker.service
+After=docker.service
+Before=pnet-backup.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/local/lib/pnet-backup/backup.py --recover
+TimeoutStartSec=240
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

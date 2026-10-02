@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily PNet private backup at 04:15 Europe/Kyiv
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 Europe/Kyiv
+AccuracySec=1min
+Persistent=false
+Unit=pnet-backup.service
+
+[Install]
+WantedBy=timers.target
