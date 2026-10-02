@@ -162,6 +162,8 @@ def pack_media(source, dest):
     return entries
 
 def backup():
+    if (STATE / 'deploy-recovery.json').exists():
+        raise BackupError('Unresolved deployment; run deploy recovery before backup')
     if RECOVERY.exists():
         recover()
         raise BackupError('Recovered previous interrupted run; retry backup separately')
@@ -281,6 +283,9 @@ def main():
     try:
         private_dir(ROOT)
         private_dir(STATE)
+        if args.recover and not RECOVERY.exists():
+            print('API_RECOVERY_NOT_NEEDED', flush=True)
+            return 0
         fd = os.open(STATE / 'backup.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, 'a') as lock:
             try:

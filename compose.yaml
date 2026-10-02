@@ -48,6 +48,17 @@ services:
       NOTIFICATION_TELEGRAM_CHAT_ID: ${NOTIFICATION_TELEGRAM_CHAT_ID:-}
       NOTIFICATION_EMAIL_TO: ${NOTIFICATION_EMAIL_TO:-}
 
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health',{signal:AbortSignal.timeout(3000)}).then(async r=>{if(r.status!==200)process.exit(1);const b=await r.json();process.exit(b.status==='ok'&&b.service==='pnet-api'?0:1)}).catch(()=>process.exit(1))"
+      interval: 20s
+      timeout: 6s
+      start_period: 30s
+      retries: 3
+
     ports:
       - "127.0.0.1:3001:3000"
 
@@ -67,6 +78,18 @@ services:
       context: ./apps/web
 
     restart: unless-stopped
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -T 3 -O /dev/null http://127.0.0.1/ &&
+          wget -q -T 3 -O - http://127.0.0.1/api/v1/health |
+          grep -Eq '"service"[[:space:]]*:[[:space:]]*"pnet-api"'
+      interval: 20s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
 
     ports:
       - "127.0.0.1:8091:80"
