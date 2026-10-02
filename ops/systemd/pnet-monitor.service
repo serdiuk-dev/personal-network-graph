@@ -1,0 +1,12 @@
+[Unit]
+Description=PNet local backup and container status
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 -B /usr/local/lib/pnet-backup/monitor.py
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal

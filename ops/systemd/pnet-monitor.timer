@@ -1,0 +1,11 @@
+[Unit]
+Description=Check PNet backup and container status every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=pnet-monitor.service
+
+[Install]
+WantedBy=timers.target
