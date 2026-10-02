@@ -6,6 +6,12 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
 
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -35,6 +41,12 @@ services:
       dockerfile: apps/api/Dockerfile
 
     restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -78,6 +90,12 @@ services:
       context: ./apps/web
 
     restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
     healthcheck:
       test:
