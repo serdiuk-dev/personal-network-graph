@@ -8,7 +8,7 @@ Accepted checkpoints:
 - Production acceptance is recorded in the operations documents.
 
 Remaining work:
-- Bound PNet container logs and expose backup/health failures locally.
+- Container log limits and local backup/health monitoring are implemented and production-validated; ongoing monitoring remains operational.
 - Observe the first scheduled backup; it is not yet confirmed.
 - Define retention initially without deleting existing backups.
 - Encrypted off-server backup remains deferred until the owner selects
