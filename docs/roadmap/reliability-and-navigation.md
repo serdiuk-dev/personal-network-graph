@@ -1,19 +1,21 @@
 # Reliability and navigation — work sequence
 
-## 1. Complete v0.43.0 Production Reliability
+## 1. v0.43.0 Production Reliability
 
-Accepted checkpoints:
-- Private paired PostgreSQL/media backup automation.
-- API/WEB healthchecks and guarded same-image deployment.
-- Production acceptance is recorded in the operations documents.
+Реализация принята 2026-10-03:
+- Приватный согласованный backup и первый запуск по расписанию подтверждены.
+- Healthchecks API/WEB и guarded deployment приняты.
+- Ротация логов и локальный монитор приняты.
+- Retention preview принят; удаление выключено.
+- Эксплуатационная инструкция и release notes подготовлены.
 
-Remaining work:
-- Container log limits and local backup/health monitoring are implemented and production-validated; ongoing monitoring remains operational.
-- Observe the first scheduled backup; it is not yet confirmed.
-- Define retention initially without deleting existing backups.
-- Encrypted off-server backup remains deferred until the owner selects
-  and authorizes a destination; private data currently stays on the VDS.
-- Complete the operational runbook and release checkpoint.
+Осталось для публикации:
+- Перенести согласованный коммит в main и опубликовать тег v0.43.0.
+
+Отложено:
+- Внешнее зашифрованное хранение до согласования назначения.
+- Внешние оповещения и мониторинг недоступности VDS.
+- Реальное удаление backup до отдельной реализации и проверки.
 
 ## 2. WEB navigation and graph toolbar refinement
 
