@@ -1,0 +1,50 @@
+/* v0.44: one desktop header and a shared inspector beside the live graph. */
+.pnet-workspace{--pnet-surface:#fffcfd;--pnet-field:#f3edf1;--pnet-text:#29232f;--pnet-muted:#716575;--pnet-border:#d8cbdc;--pnet-accent:#7050a0;--pnet-accent-text:#fff;background:linear-gradient(150deg,#f7ecf5,#f5e3e3 55%,#ecdce4);color:var(--pnet-text);padding:12px;gap:12px}
+.pnet-workspace[data-theme=dark]{--pnet-surface:#26242b;--pnet-field:#302d36;--pnet-text:#f5f0f6;--pnet-muted:#beb3c4;--pnet-border:#5c5363;--pnet-accent:#bca3e3;--pnet-accent-text:#241d2c;background:#1c1b20;color-scheme:dark}
+.pnet-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--pnet-surface);border-radius:18px;flex:none;position:relative;z-index:30}
+.pnet-header nav,.pnet-header-actions,.pnet-theme-switch{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.pnet-header button{white-space:nowrap!important;border:0!important}
+.pnet-menu{position:relative}.pnet-dropdown{position:absolute;top:calc(100% + 8px);left:0;width:230px;padding:8px;border:1px solid var(--pnet-border);border-radius:16px;background:var(--pnet-surface);box-shadow:0 12px 30px #0002;z-index:40}.pnet-dropdown button{display:block;width:100%;text-align:left}.pnet-menu:last-child .pnet-dropdown{left:auto;right:0}
+.pnet-workspace button{border-radius:12px;background:var(--pnet-surface);color:var(--pnet-text);border-color:var(--pnet-border)}
+.pnet-workspace button:hover:not(:disabled){background:var(--pnet-field)}
+.pnet-workspace .pnet-primary,.pnet-workspace button[aria-pressed=true],.pnet-workspace button[aria-current=true]{background:var(--pnet-accent);color:var(--pnet-accent-text)}
+.pnet-workspace :where(button,input,select,textarea):focus-visible{outline-color:var(--pnet-accent)}
+.pnet-theme-switch{background:var(--pnet-field);padding:3px;border-radius:24px;gap:2px}
+.pnet-work-area{display:flex;gap:12px;flex:1;min-height:0;min-width:0;outline:none}.pnet-main-graph{flex:1;min-width:0;min-height:0}.pnet-right-panel{width:400px;max-width:45%;flex:none;display:flex;flex-direction:column;min-height:0;background:var(--pnet-surface);border-radius:22px;overflow:hidden}.pnet-right-panel[hidden]{display:none}
+.pnet-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;flex:none;border-bottom:1px solid var(--pnet-border)}.pnet-panel-heading h2{margin:0;font-size:18px}.pnet-panel-scroll{overflow:auto;min-height:0;padding:16px;overscroll-behavior:contain}.pnet-panel-scroll .pnet-page{padding:0}.pnet-panel-scroll h1{font-size:20px}.pnet-panel-scroll h2{font-size:18px}.pnet-panel-scroll table{min-width:520px}.pnet-panel-scroll .pnet-page>h1{display:none}
+.pnet-appearance label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0;flex-wrap:wrap}.pnet-appearance input[type=range]{width:100%;accent-color:var(--pnet-accent)}.pnet-appearance input[type=color]{width:44px;height:34px;border:1px solid var(--pnet-border);border-radius:8px;background:var(--pnet-field)}.pnet-appearance p{color:var(--pnet-muted);font-size:13px}.pnet-appearance>button{margin:4px 0;width:100%}
+.pnet-workspace :where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea){background:var(--pnet-field);color:var(--pnet-text);border-color:var(--pnet-border);border-radius:12px}
+.pnet-workspace .pnet-graph{height:100%;min-height:0;overflow:hidden;background:transparent;flex-direction:row}.pnet-workspace .pnet-graph-stage{flex:1;min-height:0}.pnet-workspace .pnet-graph-canvas{height:100%;min-height:0;flex:1;background:transparent!important;border-radius:20px}
+.pnet-graph-controls header{padding:0!important;display:grid!important;gap:14px!important;border:0!important}.pnet-graph-controls header>strong{display:none}.pnet-graph-controls header>span{font-size:12px;color:var(--pnet-muted)}.pnet-graph-controls label{display:grid;gap:6px}.pnet-graph-controls select{width:100%}.pnet-graph-controls form{margin:0!important}.pnet-graph-controls header+div{padding:16px 0!important;margin-top:12px;border-color:var(--pnet-border)!important}
+.pnet-workspace .pnet-graph-details{position:static;width:100%;max-height:none;max-width:100%;padding:0;border:0;box-shadow:none;background:var(--pnet-surface);overflow:visible}.pnet-workspace .pnet-graph-details-body{overflow:visible}.pnet-workspace .pnet-graph-details-close{width:100%}
+.pnet-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+/* Existing editor inline surface colours are normalised, without recolouring graph marks. */
+.pnet-panel-scroll :where(section,div,form,fieldset,th)[style*="background: rgb(255, 255, 255)"]{background:var(--pnet-surface)!important}.pnet-panel-scroll :where(p,span,div)[style*="color: rgb(99, 117, 138)"],.pnet-panel-scroll :where(p,span,div)[style*="color: rgb(102, 102, 102)"],.pnet-panel-scroll :where(p,span,div)[style*="color: rgb(85, 85, 85)"],.pnet-panel-scroll :where(p,span,div)[style*="color: rgb(119, 119, 119)"]{color:var(--pnet-muted)!important}.pnet-panel-scroll :where(section,div,form,fieldset,td,th)[style*="border"]{border-color:var(--pnet-border)!important}.pnet-panel-scroll th{background:var(--pnet-field)}.pnet-panel-scroll .pnet-state{background:var(--pnet-field);color:var(--pnet-text)}.pnet-panel-scroll .pnet-media-preview{background:var(--pnet-field)}
+@media(max-width:1000px){.pnet-right-panel{width:370px}.pnet-header{padding:8px;gap:6px}.pnet-header button{padding:8px}}
+@media(max-width:760px){.pnet-header{flex-wrap:wrap}.pnet-header nav{order:2;width:100%;justify-content:space-between}.pnet-header-actions{margin-left:auto}.pnet-work-area{position:relative}.pnet-right-panel{position:absolute;right:0;bottom:0;z-index:20;width:min(400px,100%);max-width:100%;max-height:60%;box-shadow:0 -4px 20px #0002}.pnet-workspace .pnet-graph-stage{height:100%}.pnet-workspace .pnet-graph-canvas{height:100%;flex:1}.pnet-workspace{padding:8px;gap:8px}.pnet-dropdown{width:210px}.pnet-menu:nth-child(n+3) .pnet-dropdown{left:auto;right:0}}
+
+.pnet-workspace .pnet-graph-media-dialog{background:var(--pnet-surface);color:var(--pnet-text);border-color:var(--pnet-border)}
+.pnet-workspace[data-theme=dark] .pnet-error{background:#3d252c;color:#ffb4ab;border-color:#d58681}
+.pnet-panel-scroll [role=alert]{color:#b42318!important}.pnet-workspace[data-theme=dark] .pnet-panel-scroll [role=alert]{color:#ffb4ab!important}
+.pnet-workspace[data-theme=dark] .pnet-panel-scroll p[role=status]{color:#94dbc9!important}
+.pnet-header-actions>button{display:flex;align-items:center;justify-content:center}.pnet-header svg{flex:none}
+
+.pnet-main-graph{position:relative}.pnet-draft-badge{position:absolute;left:12px;bottom:12px;max-width:calc(100% - 24px);z-index:2;background:var(--pnet-surface);color:var(--pnet-text);border:1px solid var(--pnet-border);border-radius:12px;padding:8px 12px;font-size:12px;overflow-wrap:anywhere;pointer-events:none}.pnet-draft-help{font-size:13px;color:var(--pnet-muted)}
+
+.pnet-workspace button[aria-pressed=true]:hover,.pnet-workspace button[aria-current=true]:hover,.pnet-workspace .pnet-primary:hover{background:var(--pnet-accent);color:var(--pnet-accent-text)}
+.pnet-filter-icon{display:none}
+@media(max-width:760px){.pnet-header-actions>button[aria-label="Events and reminders"]{display:none}.pnet-header-actions{gap:4px}.pnet-header-actions>button,.pnet-theme-switch>button{min-width:44px}.pnet-filter-icon{display:block}.pnet-filter-label{display:none}.pnet-header{padding:6px}.pnet-panel-scroll{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}}
+
+@media(max-width:760px){.pnet-header nav{min-width:0;gap:2px}.pnet-header nav button{font-size:14px;padding:8px 6px}}
+
+/* Contacts fit the inspector: actions immediately below the name. */
+.pnet-contact-list{list-style:none;margin:0;padding:0;display:grid;gap:14px;min-width:0}
+.pnet-contact-card{min-width:0;padding:14px;border:1px solid var(--pnet-border);border-radius:16px;overflow-wrap:anywhere}
+.pnet-contact-card h3{margin:0 0 12px;font-size:17px;line-height:1.4}
+.pnet-contact-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.pnet-contact-actions button{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.pnet-contact-facts{margin:16px 0 0;display:grid;gap:10px;min-width:0}
+.pnet-contact-facts>div{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;min-width:0}
+.pnet-contact-facts dt{color:var(--pnet-muted);font-size:13px}
+.pnet-contact-facts dd{margin:0;min-width:0}
+@media(max-width:380px){.pnet-contact-facts>div{grid-template-columns:minmax(0,1fr);gap:3px}}

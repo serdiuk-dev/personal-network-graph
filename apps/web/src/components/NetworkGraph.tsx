@@ -1,3 +1,6 @@
+import type { ContactDraft } from './PeopleManager';
+import { createPortal } from 'react-dom';
+import type { Appearance } from '../graph/appearance';
 import { contactInitials } from '../graph/graphPhotos';
 import { PersonMediaManager } from './PersonMediaManager';
 import { installGraphInteraction, type GraphInteraction } from '../graph/graphInteraction';
@@ -77,7 +80,13 @@ type ColorMode =
   | 'community';
 
 type NetworkGraphProps = {
+  contactDraft: ContactDraft | null;
   refreshKey: number;
+  panelTarget: HTMLElement | null;
+  activePanel: string;
+  onSelectContact: () => void;
+  appearance: Appearance;
+  previewStyles: GraphStyleSettings | null;
 };
 
 const CATEGORY_COLORS = [
@@ -416,6 +425,7 @@ function installProdigyVisualLayer(
   renderer: Sigma,
   container: HTMLDivElement,
   styles: GraphStyleSettings,
+  appearance: Appearance,
 ) {
   container.style.position =
     'relative';
@@ -499,17 +509,10 @@ function installProdigyVisualLayer(
             'translate(-50%, -100%)',
           fontFamily:
             'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
-          fontSize: '9px',
+          fontSize: `${Math.max(9, appearance.labelSize - 3)}px`,
           fontWeight: '600',
           letterSpacing: '0.18em',
-          color:
-            hexToRgba(
-              ringStyle.color,
-              Math.min(
-                1,
-                ringStyle.opacity + 0.18,
-              ),
-            ),
+          color: appearance.secondary,
           whiteSpace: 'nowrap',
         },
       );
@@ -559,7 +562,7 @@ function installProdigyVisualLayer(
       boxSizing: 'border-box',
 
       background:
-        'linear-gradient(135deg, #2563eb 0%, #0ea5e9 42%, #18c7bd 100%)',
+        `linear-gradient(135deg, ${appearance.accentA}, ${appearance.accentB})`,
 
       color: '#ffffff',
       fontFamily:
@@ -717,8 +720,20 @@ function buildRadialPositions(
 }
 
 export function NetworkGraph({
-  refreshKey,
+  refreshKey, panelTarget, activePanel, onSelectContact, appearance, previewStyles, contactDraft,
 }: NetworkGraphProps) {
+  const draftRef = useRef(contactDraft);
+  draftRef.current = contactDraft;
+  const [graphEpoch, setGraphEpoch] = useState(0);
+  const appearanceRef = useRef(appearance);
+  appearanceRef.current = appearance;
+  const onSelectRef = useRef(onSelectContact);
+  onSelectRef.current = onSelectContact;
+  const visualDisposeRef = useRef<(() => void) | null>(null);
+  const savedStylesRef = useRef<GraphStyleSettings>({ ...DEFAULT_GRAPH_STYLES });
+  const selectedIdRef = useRef<string | null>(null);
+  const previewRef = useRef(previewStyles);
+  previewRef.current = previewStyles;
   const containerRef =
     useRef<HTMLDivElement | null>(null);
 
@@ -726,6 +741,17 @@ export function NetworkGraph({
     useRef<Sigma | null>(null);
 
   const interactionRef = useRef<GraphInteraction | null>(null);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      const renderer = sigmaRef.current;
+      if (renderer) { renderer.resize(); renderer.refresh(); }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
 
   const graphRef =
     useRef<Graph | null>(null);
@@ -823,6 +849,18 @@ export function NetworkGraph({
     return true;
   }
 
+  function effectivePeople(): GraphNode[] {
+    const draft = draftRef.current;
+    if (!draft) return dataRef.current;
+    const id = draft.id ?? '__pnet_contact_draft__';
+    if (!graphRef.current?.hasNode(id)) return dataRef.current;
+    const original = dataRef.current.find(person => person.id === id);
+    const person: GraphNode = { company: null, position: null, city: null, country: null,
+      categories: [], interests: [], ...original, ...draft, id,
+      label: [draft.firstName, draft.lastName].filter(Boolean).join(' ') };
+    return [...dataRef.current.filter(person => person.id !== id), person];
+  }
+
   function applyGraphView(
     selectedId: string | null,
   ) {
@@ -834,8 +872,8 @@ export function NetworkGraph({
     }
 
     const visibleIds = new Set(
-      dataRef.current
-        .filter(passesFilters)
+      effectivePeople()
+        .filter(person => person.id === (draftRef.current?.id ?? '__pnet_contact_draft__') || passesFilters(person))
         .map((node) => node.id),
     );
 
@@ -865,7 +903,7 @@ export function NetworkGraph({
           }
 
           const person =
-            dataRef.current.find(
+            effectivePeople().find(
               (item) => item.id === node,
             );
 
@@ -976,13 +1014,11 @@ export function NetworkGraph({
               ...data,
               hidden: false,
               color:
-                PRODIGY_LIGHT_THEME.node
-                  .selected,
+                appearanceRef.current.selected,
               label: displayLabel,
               highlighted: true,
               size: Math.max(
-                PRODIGY_LIGHT_THEME.node
-                  .selectedMinSize,
+                PRODIGY_LIGHT_THEME.node.selectedMinSize,
                 nodeSize,
               ),
               zIndex:
@@ -1018,8 +1054,7 @@ export function NetworkGraph({
             ...data,
             hidden: false,
             color:
-              PRODIGY_LIGHT_THEME.node
-                .inactive,
+              appearanceRef.current.inactive,
             label: '',
             zIndex:
               PRODIGY_LIGHT_THEME.focus
@@ -1029,11 +1064,11 @@ export function NetworkGraph({
       );
 
     const baseReducer = renderer.getSetting('nodeReducer')!;
-    const ranks = new Map([...dataRef.current].sort((a, b) => a.id.localeCompare(b.id)).map((person, index) => [person.id, index]));
+    const ranks = new Map([...effectivePeople()].sort((a, b) => a.id.localeCompare(b.id)).map((person, index) => [person.id, index]));
     renderer.setSetting('nodeReducer', (id, attributes) => ({
       ...baseReducer(id, attributes),
       highlighted: false,
-      zIndex: id === SELF_NODE_ID ? 0 : depthForCircle(String(attributes.networkCircle)) * (dataRef.current.length + 1) + (ranks.get(id) ?? 0),
+      zIndex: id === SELF_NODE_ID ? 0 : depthForCircle(String(attributes.networkCircle)) * (effectivePeople().length + 1) + (ranks.get(id) ?? 0),
     }));
 
     renderer.setSetting(
@@ -1266,6 +1301,10 @@ export function NetworkGraph({
   function selectNode(
     nodeId: string | null,
   ) {
+    if (nodeId === '__pnet_contact_draft__') return;
+    selectedIdRef.current = nodeId;
+    if (nodeId && nodeId !== SELF_NODE_ID) onSelectRef.current();
+
     const renderer = sigmaRef.current;
 
     if (!renderer) {
@@ -1413,9 +1452,6 @@ export function NetworkGraph({
     const abort = new AbortController();
     let interaction: GraphInteraction | null = null;
 
-    let disposeProdigyLayer:
-      (() => void) | null =
-      null;
 
     async function loadGraph() {
       try {
@@ -1457,10 +1493,8 @@ export function NetworkGraph({
             : DEFAULT_GRAPH_STYLES;
 
         if (disposed) return;
-        graphStyleRef.current = {
-          ...DEFAULT_GRAPH_STYLES,
-          ...graphStyles,
-        };
+        savedStylesRef.current = { ...DEFAULT_GRAPH_STYLES, ...graphStyles };
+        graphStyleRef.current = previewRef.current ?? savedStylesRef.current;
 
         dataRef.current =
           data.nodes;
@@ -1754,7 +1788,7 @@ export function NetworkGraph({
             labelFont:
               'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
 
-            labelSize: 14,
+            labelSize: appearanceRef.current.labelSize,
 
             labelRenderedSizeThreshold:
               0,
@@ -1763,10 +1797,10 @@ export function NetworkGraph({
 
             labelColor: {
               color:
-                PRODIGY_LIGHT_THEME.text
-                  .primary,
+                appearanceRef.current.text,
             },
 
+            edgeLabelColor: { color: appearanceRef.current.secondary },
             zIndex: true,
           },
         );
@@ -1774,11 +1808,12 @@ export function NetworkGraph({
         sigmaRef.current =
           renderer;
 
-        disposeProdigyLayer =
+        visualDisposeRef.current =
           installProdigyVisualLayer(
             renderer,
             containerRef.current,
             graphStyleRef.current,
+            appearanceRef.current,
           );
 
         renderer.on(
@@ -1823,8 +1858,10 @@ export function NetworkGraph({
         setError(null);
 
         applyGraphView(null);
-        interaction = installGraphInteraction(renderer, graph, containerRef.current, SELF_NODE_ID, selectNode);
+        interaction = installGraphInteraction(renderer, graph, containerRef.current, SELF_NODE_ID, selectNode, () => appearanceRef.current);
         interactionRef.current = interaction;
+        selectedIdRef.current = null;
+        setGraphEpoch(epoch => epoch + 1);
       } catch (err) {
         if (disposed) return;
         setError(
@@ -1842,7 +1879,8 @@ export function NetworkGraph({
       abort.abort();
       interaction?.dispose();
       if (interactionRef.current === interaction) interactionRef.current = null;
-      disposeProdigyLayer?.();
+      visualDisposeRef.current?.();
+      visualDisposeRef.current = null;
       renderer?.kill();
 
       sigmaRef.current =
@@ -1861,9 +1899,58 @@ export function NetworkGraph({
     minImportance,
   ]);
 
+  // Contact drafts exist only in this renderer, never in storage or API requests.
+  useEffect(() => {
+    const graph = graphRef.current;
+    const renderer = sigmaRef.current;
+    if (!contactDraft || !graph || !renderer) return;
+    const id = contactDraft.id ?? '__pnet_contact_draft__';
+    if (contactDraft.id && !graph.hasNode(id)) return;
+    const original = graph.hasNode(id) ? { ...graph.getNodeAttributes(id) } : null;
+    const edge = `${SELF_EDGE_PREFIX}${id}`;
+    const oldCircle = graph.hasEdge(edge) ? graph.getEdgeAttribute(edge, 'networkCircle') : null;
+    const radius = PRODIGY_LIGHT_THEME.radial.radii[contactDraft.networkCircle];
+    const angle = original ? Math.atan2(Number(original.y), Number(original.x)) : Math.PI / 4;
+    const attributes = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius,
+      size: 6 + contactDraft.importance * 2, color: appearanceRef.current.selected,
+      label: `${contactDraft.firstName} ${contactDraft.lastName}`.trim(),
+      initials: contactInitials(contactDraft.firstName, contactDraft.lastName),
+      networkCircle: contactDraft.networkCircle, isDraft: !original };
+    if (original) graph.mergeNodeAttributes(id, attributes);
+    else {
+      graph.addNode(id, attributes);
+      graph.addDirectedEdgeWithKey(edge, SELF_NODE_ID, id, { type: 'curved', isEgo: true,
+        size: 1, color: appearanceRef.current.selected, networkCircle: contactDraft.networkCircle });
+    }
+    if (graph.hasEdge(edge)) graph.setEdgeAttribute(edge, 'networkCircle', contactDraft.networkCircle);
+    applyGraphView(null);
+    return () => {
+      if (graphRef.current !== graph) return;
+      if (original && graph.hasNode(id)) graph.replaceNodeAttributes(id, original);
+      else if (graph.hasNode(id)) graph.dropNode(id);
+      if (oldCircle && graph.hasEdge(edge)) graph.setEdgeAttribute(edge, 'networkCircle', oldCircle);
+      applyGraphView(selectedIdRef.current);
+    };
+  }, [contactDraft, graphEpoch]);
+
+  useEffect(() => {
+    const renderer = sigmaRef.current;
+    if (!renderer || !containerRef.current) return;
+    graphStyleRef.current = previewStyles ?? savedStylesRef.current;
+    visualDisposeRef.current?.();
+    visualDisposeRef.current = installProdigyVisualLayer(renderer, containerRef.current, graphStyleRef.current, appearance);
+    renderer.setSetting('labelSize', appearance.labelSize);
+    renderer.setSetting('labelColor', { color: appearance.text });
+    renderer.setSetting('edgeLabelColor', { color: appearance.secondary });
+    applyGraphView(draftRef.current ? null : selectedIdRef.current);
+    renderer.refresh();
+  }, [appearance, previewStyles]);
+
   return (
     <div className="pnet-graph">
+      {contactDraft && <div className="pnet-draft-badge" role="status">Unsaved contact preview: {contactDraft.firstName} {contactDraft.lastName}</div>}
       <section className="pnet-graph-stage">
+        {panelTarget && activePanel === 'filters' && createPortal(<div className="pnet-graph-controls">
         <header
           style={{
             flexShrink: 0,
@@ -1876,9 +1963,7 @@ export function NetworkGraph({
               '1px solid #ddd',
           }}
         >
-          <strong>
-            Personal Network Graph
-          </strong>
+          <strong>Graph controls</strong>
 
           <span>
             People: {meta.nodeCount}
@@ -2213,6 +2298,8 @@ export function NetworkGraph({
               : ''}
           </span>        </div>
 
+        </div>, panelTarget)}
+        <span id="pnet-graph-instructions" className="pnet-visually-hidden">Drag to explore. Escape restores the layout.</span>
         {error ? (
           <div className="pnet-error" role="alert"
             style={{
@@ -2228,10 +2315,10 @@ export function NetworkGraph({
             tabIndex={0}
             role="region"
             aria-label="Interactive personal network graph"
-            aria-describedby="graph-drag-help"
+            aria-describedby="pnet-graph-instructions"
             style={{
               background:
-                PRODIGY_LIGHT_THEME.canvas.background,
+                'transparent',
               width: '100%',
               position: 'relative',
               overflow: 'hidden',
@@ -2240,7 +2327,8 @@ export function NetworkGraph({
         )}
       </section>
 
-      {selectedNode && (
+      {panelTarget && activePanel === 'contact' && !selectedNode && createPortal(<p>Select a contact on the graph or use Search &amp; filters.</p>, panelTarget)}
+      {panelTarget && activePanel === 'contact' && selectedNode && createPortal(
         <aside className="pnet-graph-details" aria-label="Contact overview">
           <div className="pnet-graph-details-body">
           <button type="button" onClick={() => setMediaContact(selectedNode)}>
@@ -2372,7 +2460,7 @@ export function NetworkGraph({
           >
             Close
           </button>
-        </aside>
+        </aside>, panelTarget
       )}
       {mediaContact && (
         <dialog ref={mediaDialogRef} className="pnet-graph-media-dialog"

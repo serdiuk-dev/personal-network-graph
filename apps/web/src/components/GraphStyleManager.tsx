@@ -134,6 +134,7 @@ function sanitizeGraphStyles(
 
 type GraphStyleManagerProps = {
   onChanged: () => void;
+  onPreview?: (styles: GraphStyleSettings | null) => void;
 };
 
 type LineEditorProps = {
@@ -314,7 +315,7 @@ function LineEditor({
 }
 
 export function GraphStyleManager({
-  onChanged,
+  onChanged, onPreview,
 }: GraphStyleManagerProps) {
   const [
     styles,
@@ -334,6 +335,15 @@ export function GraphStyleManager({
 
   const [message, setMessage] =
     useState<string | null>(null);
+
+  useEffect(() => {
+    if (loading || error) return;
+    const valid = Object.entries(styles).every(([key, value]) => key.endsWith('Color')
+      ? typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+      : typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= (key.endsWith('Opacity') ? 1 : 10));
+    if (valid) onPreview?.(styles);
+  }, [styles, loading, error, onPreview]);
+  useEffect(() => () => onPreview?.(null), [onPreview]);
 
   async function loadStyles() {
     setLoading(true);

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthBoundary } from './auth/AuthBoundary';
 import './style.css';
+import './workspace.css';
 
 ReactDOM.createRoot(
   document.getElementById('root')!

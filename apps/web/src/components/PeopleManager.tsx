@@ -57,17 +57,22 @@ const emptyForm: PersonForm = {
   primaryTag: '',
 };
 
+export type ContactDraft = Pick<PersonForm, 'firstName' | 'lastName' | 'nickname' | 'importance' | 'networkCircle' | 'primaryTag'> & { id: string | null };
+
 type PeopleManagerProps = {
+  onPreview?: (draft: ContactDraft | null) => void;
+  onDirtyChange?: (dirty: boolean) => void;
   onChanged: () => void;
   focusPersonId?: string | null;
   onFocusConsumed?: () => void;
 };
 
 export function PeopleManager({
-  onChanged,
+  onChanged, onPreview, onDirtyChange,
   focusPersonId,
   onFocusConsumed,
 }: PeopleManagerProps) {
+  const edited = useRef(false);
   const [mediaPersonId, setMediaPersonId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [people, setPeople] = useState<Person[]>([]);
@@ -78,6 +83,13 @@ export function PeopleManager({
   const [contactEventsPersonId, setContactEventsPersonId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    onPreview?.(form.firstName.trim() ? { id: editingId, firstName: form.firstName,
+      lastName: form.lastName, nickname: form.nickname, importance: form.importance,
+      networkCircle: form.networkCircle, primaryTag: form.primaryTag } : null);
+  }, [form, editingId, onPreview]);
+  useEffect(() => () => onPreview?.(null), [onPreview]);
 
   async function loadPeople() {
     try {
@@ -138,6 +150,8 @@ export function PeopleManager({
     field: K,
     value: PersonForm[K],
   ) {
+    edited.current = true;
+    onDirtyChange?.(true);
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -145,6 +159,9 @@ export function PeopleManager({
   }
 
   function startEdit(person: Person) {
+    if (edited.current && !window.confirm('Discard unsaved contact edits?')) return;
+    edited.current = false;
+    onDirtyChange?.(false);
     setEditingId(person.id);
 
     setForm({
@@ -167,6 +184,8 @@ export function PeopleManager({
   }
 
   function resetForm() {
+    edited.current = false;
+    onDirtyChange?.(false);
     setEditingId(null);
     setForm(emptyForm);
   }
@@ -285,6 +304,7 @@ export function PeopleManager({
     <div className="pnet-page">
       <h1>People</h1>
 
+      <p className="pnet-draft-help">Name, importance and circle preview on the graph. Save to keep contact changes.</p>
       <form
         ref={formRef}
         onSubmit={handleSubmit}
@@ -495,7 +515,7 @@ export function PeopleManager({
           {editingId && (
             <button
               type="button"
-              onClick={resetForm}
+              onClick={() => { if (!edited.current || window.confirm('Discard unsaved contact edits?')) resetForm(); }}
             >
               Cancel
             </button>
@@ -520,54 +540,11 @@ export function PeopleManager({
       ) : people.length === 0 ? (
         <p className="pnet-state">No people yet.</p>
       ) : (
-        <div tabIndex={0} role="region" aria-label="People table" style={{ overflowX: 'auto' }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-            }}
-          >
-            <thead>
-              <tr>
-                <th align="left">Name</th>
-                <th align="left">Company</th>
-                <th align="left">Position</th>
-                <th align="left">Location</th>
-                <th align="left">Importance</th>
-                <th align="left">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {people.map((person) => (
-                <tr
-                  key={person.id}
-                  style={{
-                    borderTop: '1px solid #ddd',
-                  }}
-                >
-                  <td style={{ padding: '12px 4px' }}>
-                    {[
-                      person.firstName,
-                      person.lastName,
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  </td>
-
-                  <td>{person.company ?? '—'}</td>
-
-                  <td>{person.position ?? '—'}</td>
-
-                  <td>
-                    {[person.city, person.country]
-                      .filter(Boolean)
-                      .join(', ') || '—'}
-                  </td>
-
-                  <td>{person.importance}/5</td>
-
-                  <td>
+        <ul className="pnet-contact-list" aria-label="Contacts">
+          {people.map((person) => (
+            <li className="pnet-contact-card" key={person.id}>
+              <h3>{[person.firstName, person.lastName].filter(Boolean).join(' ')}</h3>
+              <div className="pnet-contact-actions" role="group" aria-label={`Actions for ${person.firstName} ${person.lastName ?? ''}`}>
                     <button type="button" onClick={() => setMediaPersonId(person.id)}>
                       Photo / Icon
                     </button>
@@ -616,12 +593,17 @@ export function PeopleManager({
                     >
                       Categories / Interests
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+
+              </div>
+              <dl className="pnet-contact-facts">
+                <div><dt>Company</dt><dd>{person.company || '—'}</dd></div>
+                <div><dt>Position</dt><dd>{person.position || '—'}</dd></div>
+                <div><dt>Location</dt><dd>{[person.city, person.country].filter(Boolean).join(', ') || '—'}</dd></div>
+                <div><dt>Importance</dt><dd>{person.importance}/5</dd></div>
+              </dl>
+            </li>
+          ))}
+        </ul>
       )}
 
       {mediaPersonId && (

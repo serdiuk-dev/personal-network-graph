@@ -1,3 +1,4 @@
+import type { Appearance } from './appearance';
 import { createGraphPhotos, drawGraphPhotos } from './graphPhotos';
 import type Graph from 'graphology';
 import type Sigma from 'sigma';
@@ -6,7 +7,7 @@ import { boxHitsDisk, interpolate, intersects, separateDisks, type Box, type Dis
 
 export type GraphInteraction = { restore: () => void; dispose: () => void };
 export function installGraphInteraction(renderer: Sigma, graph: Graph, container: HTMLDivElement,
-  selfId: string, select: (id: string) => void): GraphInteraction {
+  selfId: string, select: (id: string) => void, appearance: () => Appearance): GraphInteraction {
   const rest = new Map<string, Point>();
   const layer = renderer.createCanvas('pnet-contact-labels', { afterLayer: 'labels' });
   layer.style.pointerEvents = 'none';
@@ -61,14 +62,15 @@ export function installGraphInteraction(renderer: Sigma, graph: Graph, container
     }
     canvas.setTransform(ratio, 0, 0, ratio, 0, 0);
     canvas.clearRect(0, 0, width, height);
-    canvas.font = '500 11px Inter, system-ui, sans-serif';
+    const style = appearance();
+    canvas.font = `500 ${style.labelSize}px Inter, system-ui, sans-serif`;
     canvas.textBaseline = 'middle';
     const nodes = visible().map(id => ({ ...disk(id), initials: graph.getNodeAttribute(id, 'initials') as string | undefined, data: renderer.getNodeDisplayData(id)! }));
     // Request only nodes currently intersecting the viewport. Coordinates remain
     // CSS pixels; the existing Retina transform applies to both photos and labels.
     const inView = nodes.filter(node => node.x + node.radius >= 0 && node.y + node.radius >= 0
       && node.x - node.radius <= width && node.y - node.radius <= height);
-    photos.request(inView.map(node => node.id));
+    photos.request(inView.filter(node => !graph.getNodeAttribute(node.id, 'isDraft')).map(node => node.id));
     drawGraphPhotos(canvas, inView, photos.images);
     nodes.sort((a, b) => b.data.zIndex - a.data.zIndex || a.id.localeCompare(b.id));
     const boxes: Box[] = [];
@@ -77,7 +79,7 @@ export function installGraphInteraction(renderer: Sigma, graph: Graph, container
       let text = String(node.data.label);
       const max = Math.max(60, Math.min(230, width - 24));
       while (text.length > 1 && canvas.measureText(text).width > max) text = text.slice(0, -2) + '…';
-      const w = canvas.measureText(text).width + 8, h = 17, r = node.radius + 4;
+      const w = canvas.measureText(text).width + 8, h = style.labelSize + 6, r = node.radius + 4;
       const candidates: Box[] = [
         { x: node.x + r, y: node.y - h / 2, width: w, height: h },
         { x: node.x - r - w, y: node.y - h / 2, width: w, height: h },
@@ -88,8 +90,8 @@ export function installGraphInteraction(renderer: Sigma, graph: Graph, container
         && !boxes.some(other => intersects(b, other)) && !nodes.some(other => boxHitsDisk(b, other)));
       if (!box) continue; // Full name remains available in search and selected-person details.
       boxes.push(box);
-      canvas.fillStyle = 'rgba(248,251,252,0.93)'; canvas.fillRect(box.x, box.y, w, h);
-      canvas.fillStyle = '#17233d'; canvas.fillText(text, box.x + 4, box.y + h / 2);
+      canvas.fillStyle = style.labelBackground; canvas.fillRect(box.x, box.y, w, h);
+      canvas.fillStyle = style.text; canvas.fillText(text, box.x + 4, box.y + h / 2);
     }
   }
   function restore() {
@@ -103,7 +105,7 @@ export function installGraphInteraction(renderer: Sigma, graph: Graph, container
     const tick = (now: number) => {
       if (dead) return;
       const t = media.matches || document.hidden ? 1 : Math.min(1, (now - begun) / 600);
-      update(new Map([...rest].map(([id, p]) => [id, t === 1 ? p : interpolate(start.get(id)!, p, t)])));
+      update(new Map([...rest].filter(([id]) => graph.hasNode(id)).map(([id, p]) => [id, t === 1 ? p : interpolate(start.get(id)!, p, t)])));
       if (t < 1) frame = requestAnimationFrame(tick);
       else { frame = 0; returning = false; changed = false; }
     };

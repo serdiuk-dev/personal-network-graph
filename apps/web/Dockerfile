@@ -8,7 +8,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build
+RUN npm exec tsc -- --noEmit && npm run build
 
 
 FROM nginx:alpine
