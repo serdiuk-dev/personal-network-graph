@@ -1,0 +1,13 @@
+{
+  "appId": "dev.serdiuk.pnet.prototype",
+  "appName": "PNET Prototype",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

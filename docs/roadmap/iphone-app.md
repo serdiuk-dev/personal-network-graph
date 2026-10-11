@@ -1,11 +1,11 @@
 # iPhone application — planning checkpoint
 
-Status: planning; application not implemented or accepted.
+Status: offline technical prototype accepted on simulators and physical iPhone; production server integration is not implemented.
 Base: published WEB v0.44.0, commit 0c9555ead886a9af7aec86e9a70e4a24ef7e683b.
 
 ## Scope
 
-- Owner-only application for iPhone 13 Pro.
+- Owner-only application for iPhone 13 Pro through iPhone 18 Pro.
 - Minimum target: iOS 26; later versions require compatibility verification.
 - Preserve the accepted WEB design, themes and information architecture.
 - Reuse React and Sigma where practical.
@@ -60,3 +60,22 @@ Base: published WEB v0.44.0, commit 0c9555ead886a9af7aec86e9a70e4a24ef7e683b.
 Full System Test / Release Candidate, final documentation and targeted
 optimization/cleanup follow the mobile phase. Additional social adapters remain
 deferred. Preserve backups and rollback images.
+
+## Updated device scope — 2026-10-08
+
+This scope supersedes the earlier single-device target.
+- One adaptive application for iPhone 13 Pro through iPhone 18 Pro.
+- Minimum iOS version remains 26.0.
+- Preserve the approved visual design.
+- Adapt to viewport dimensions and safe areas, not model names.
+- Check portrait/landscape, keyboard, panel scrolling and touch gestures.
+- Screenshots confirm prototype rendering on iPhone 18 Pro / iOS 27 simulator
+  in light/dark themes, including the contact overview panel.
+- iPhone 13 Pro / iOS 27 simulator: rendering, scrolling, keyboard input,
+  panel close/reopen and graph pan accepted.
+- Physical iPhone 13 Pro / iOS 26.6 (23G71): prototype installed and opened
+  successfully; graph, Contacts, editing and live preview accepted.
+- Save remains intentionally disabled in the offline prototype; no server write occurs.
+- Two-finger pinch, landscape, accessibility/large text/VoiceOver and the full
+  device range remain unverified.
+- Next: secure mobile transport/auth/session, then server-backed read/write.

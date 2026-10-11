@@ -1,0 +1,13 @@
+import { readFileSync, writeFileSync, lstatSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const project = 'ios/App/App.xcodeproj/project.pbxproj';
+const packageFile = 'ios/App/CapApp-SPM/Package.swift';
+for (const file of [project, packageFile]) assert(!lstatSync(file).isSymbolicLink());
+const pbx = readFileSync(project, 'utf8');
+const swift = readFileSync(packageFile, 'utf8');
+const targets = [...pbx.matchAll(/IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);/g)];
+assert(targets.length === 4 && targets.every(m => ['15.0', '26.0'].includes(m[1])), 'Unexpected iOS project template');
+assert(/platforms: \[\.iOS\((?:\.v15|"26.0")\)\],/.test(swift), 'Unexpected Swift platform template');
+writeFileSync(project, pbx.replace(/IPHONEOS_DEPLOYMENT_TARGET = [\d.]+;/g, 'IPHONEOS_DEPLOYMENT_TARGET = 26.0;'));
+writeFileSync(packageFile, swift.replace(/platforms: \[\.iOS\((?:\.v15|"26.0")\)\],/, 'platforms: [.iOS("26.0")],'));
+console.log('IOS_TARGET_OK: 26.0');

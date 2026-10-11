@@ -1,0 +1,33 @@
+{
+  "name": "pnet-iphone-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.21.0"
+  },
+  "scripts": {
+    "build": "vite build",
+    "ios:add": "cap add ios --packagemanager SPM && node scripts/ios-target.mjs",
+    "ios:sync": "cap sync ios && node scripts/ios-target.mjs",
+    "ios:open": "cap open ios"
+  },
+  "dependencies": {
+    "@sigma/edge-curve": "3.1.0",
+    "graphology": "0.26.0",
+    "graphology-layout-forceatlas2": "0.10.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sigma": "3.0.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.0",
+    "@capacitor/cli": "8.5.3"
+  }
+}
