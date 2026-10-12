@@ -54,13 +54,14 @@ export class AuthService implements OnModuleInit {
           await tx.owner.update({ where: { id: 1 }, data: { recoveryHashes: owner.recoveryHashes.filter((_, index) => index !== recoveryIndex) } });
           // Lost-factor recovery invalidates any previously issued sessions.
           await tx.ownerSession.deleteMany({ where: { ownerId: 1 } });
+          await tx.mobileDevice.deleteMany({ where: { ownerId: 1 } });
         } else if (step !== null && step > owner.lastTotpStep) {
           await tx.owner.update({ where: { id: 1 }, data: { lastTotpStep: step } });
         } else throw new UnauthorizedException('Invalid credentials');
         const now = new Date();
         await tx.ownerSession.deleteMany({ where: { OR: [ { expiresAt: { lte: now } }, { lastSeenAt: { lte: new Date(now.getTime() - IDLE_MS) } } ] } });
         // Bound stored sessions for this single-owner application.
-        const older = await tx.ownerSession.findMany({ orderBy: { createdAt: 'desc' }, skip: 4, select: { tokenHash: true } });
+        const older = await tx.ownerSession.findMany({ where: { deviceId: null }, orderBy: { createdAt: 'desc' }, skip: 4, select: { tokenHash: true } });
         if (older.length) await tx.ownerSession.deleteMany({ where: { tokenHash: { in: older.map(item => item.tokenHash) } } });
         await tx.ownerSession.create({ data: { tokenHash: hashToken(token), expiresAt: new Date(now.getTime() + MAX_MS), lastSeenAt: now } });
       });

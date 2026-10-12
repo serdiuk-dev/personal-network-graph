@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { checkSession, onSessionExpired, signIn, signOut, type LoginFields } from './native-client';
+import { checkSession, onSessionExpired, signIn, signOut, reconnectDevice, type LoginFields } from './native-client';
 
 export function AuthBoundary({ children }: { children: ReactNode }) {
   const [state, setState] = useState<'checking' | 'signedOut' | 'signedIn' | 'error'>('checking');
@@ -23,7 +23,7 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
         }
       }
     };
-    const remove = onSessionExpired(() => { if (alive) { setState('signedOut'); setError(''); } });
+    const remove = onSessionExpired(() => { if (alive && currentAuthState.current === 'signedIn') { setState('checking'); setError(''); setAttempt(n => n + 1); } });
     const visibility = () => {
       // Keep the unfinished login form mounted while using Authenticator.
       if (currentAuthState.current === 'signedOut') return;
@@ -40,7 +40,12 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
   return <main className="pnet-auth" aria-label="Owner sign in"><section className="pnet-auth-card">
     <h1>Personal Network</h1>
     {state === 'checking' && <p role="status">Checking session…</p>}
-    {state === 'error' && <><p role="alert">{error}</p><button onClick={() => setAttempt(n => n + 1)}>Retry</button></>}
+    {state === 'error' && <><p role="alert">{error}</p><button onClick={() => setAttempt(n => n + 1)}>Retry Face ID</button><button onClick={async () => {
+      if (!window.confirm('Forget local device access and sign in again? Revoke the old device in WEB to remove its server access.')) return;
+      verification.current++;
+      try { await reconnectDevice(); setError(''); setState('signedOut'); }
+      catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to reconnect.'); }
+    }}>Reconnect device</button></>}
     {state === 'signedOut' && <LoginForm onSuccess={() => setState('signedIn')} />}
   </section></main>;
 }
@@ -68,7 +73,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     }
   }
   return <form onSubmit={submit} aria-busy={busy}>
-    <p>Use your website gateway access, then your owner account.</p>
+    <p>Connect this iPhone once with website access and your owner account. Face ID will unlock it afterward.</p>
     <label htmlFor="gateway-user">Website access login</label>
     <input id="gateway-user" name="gatewayUser" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={128} disabled={busy} />
     <label htmlFor="gateway-password">Website access password</label>
@@ -79,7 +84,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     <input id="owner-password" name="password" type="password" autoComplete="current-password" required maxLength={128} disabled={busy} />
     <label htmlFor="owner-code">Authenticator or recovery code</label>
     <input id="owner-code" name="code" type="password" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} required maxLength={32} disabled={busy} />
-    <p>Enter a fresh 6-digit code, or one unused recovery code. Access is saved securely on this iPhone.</p>
+    <p>Enter a fresh 6-digit code, or one unused recovery code. Device access is protected by Face ID on this iPhone. Reconnection is required after 30 days or 7 days without use.</p>
     {error && <p role="alert">{error}</p>}
     <button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
   </form>;

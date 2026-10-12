@@ -25,6 +25,7 @@ export async function saveOwner(prisma: PrismaClient, mode: 'bootstrap' | 'reset
       // Login and recovery use the same owner row lock.
       await tx.owner.update({ where: { id: 1 }, data });
       await tx.ownerSession.deleteMany({ where: { ownerId: 1 } });
+      await tx.mobileDevice.deleteMany({ where: { ownerId: 1 } });
     }
   });
 }

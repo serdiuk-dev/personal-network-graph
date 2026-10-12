@@ -57,3 +57,10 @@ This section supersedes earlier pending compilation and contact acceptance.
   gestures/device coverage still require targeted verification.
 - Other mobile mutations remain gated. WEB/API deployment was not changed.
 - Known bundle-size warning remains deferred.
+
+
+## Face ID candidate — 2026-10-12 (not yet accepted)
+
+See docs/roadmap/mobile-faceid.md for the implementation, verification evidence,
+remaining PostgreSQL/Swift/device checks and staged rollout order. The earlier
+connected-v1 acceptance does not imply Face ID acceptance.

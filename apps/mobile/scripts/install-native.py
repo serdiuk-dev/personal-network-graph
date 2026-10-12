@@ -8,6 +8,7 @@ controller. --check validates only; --restore rolls back our last installation.
 import hashlib
 import json
 import os
+import plistlib
 from pathlib import Path
 import re
 import sys
@@ -19,6 +20,7 @@ MARKER = "// BEGIN PNET NATIVE TRANSPORT — managed by install-native.py"
 END = "// END PNET NATIVE TRANSPORT"
 TARGETS = ["ios/App/App/AppDelegate.swift", "ios/App/App/Base.lproj/Main.storyboard"]
 TARGETS.append("ios/App/App/SceneDelegate.swift")
+TARGETS.append("ios/App/App/Info.plist")
 STATE = ROOT / "ios/pnet-native-install.json"
 
 
@@ -51,14 +53,16 @@ def main():
     original = {name: read(name) for name in TARGETS}
     state = json.loads(read("ios/pnet-native-install.json")) if STATE.exists() else None
     if state:
-        for name in TARGETS:
+        if set(state["installed"]) not in [set(TARGETS[:3]), set(TARGETS)]:
+            raise SystemExit("STOP: unexpected native installation manifest")
+        for name in state["installed"]:
             if digest(original[name]) != state["installed"][name]:
                 raise SystemExit("STOP: native files changed after installation; preserve and inspect them first")
     if mode == ["--restore"]:
         if not state:
             raise SystemExit("STOP: no native installation to restore")
         restored = {}
-        for name in TARGETS:
+        for name in state["installed"]:
             relative = state["backup"] + "/" + Path(name).name
             if not relative.startswith("ios/pnet-native-backups/") or ".." in Path(relative).parts:
                 raise SystemExit("STOP: invalid backup path")
@@ -108,11 +112,22 @@ def main():
             raise SystemExit("STOP: unexpected storyboard attributes")
         storyboard = storyboard.replace(old, 'customClass="PNETViewController" customModule="App" customModuleProvider="target"', 1)
 
+    info_bytes = original[TARGETS[3]]
+    info = plistlib.loads(info_bytes)
+    if not isinstance(info, dict):
+        raise SystemExit("STOP: unexpected Info.plist")
+    usage = "Use Face ID to unlock your private Personal Network account."
+    if info.get("NSFaceIDUsageDescription") != usage:
+        if "NSFaceIDUsageDescription" in info:
+            raise SystemExit("STOP: inspect existing Face ID purpose before replacing it")
+        info["NSFaceIDUsageDescription"] = usage
+        info_bytes = plistlib.dumps(info, sort_keys=False)
     swift = read("native/PNETNative.swift").decode()
     output = {
         TARGETS[0]: (app + "\n" + MARKER + "\n" + swift.rstrip() + "\n" + END + "\n").encode(),
         TARGETS[1]: storyboard.encode(),
         TARGETS[2]: scene.encode(),
+        TARGETS[3]: info_bytes,
     }
     if mode == ["--check"]:
         print("NATIVE_INSTALL_GUARDS_OK")
@@ -124,10 +139,23 @@ def main():
     backup.mkdir(parents=True, mode=0o700)
     for name, data in original.items():
         (backup / Path(name).name).write_bytes(data)
-    # Preserve the pre-transport rollback target across later overlay updates.
+    # Create a complete original rollback set, including newly managed files.
+    rollback = dict(original)
+    if state:
+        for name in state["installed"]:
+            relative = state["backup"] + "/" + Path(name).name
+            if not relative.startswith("ios/pnet-native-backups/") or ".." in Path(relative).parts:
+                raise SystemExit("STOP: invalid backup path")
+            rollback[name] = read(relative)
+            if digest(rollback[name]) != state["original"][name]:
+                raise SystemExit("STOP: backup hash mismatch")
+    rollback_dir = backup / "original"
+    rollback_dir.mkdir(mode=0o700)
+    for name, data in rollback.items():
+        (rollback_dir / Path(name).name).write_bytes(data)
     record = {
-        "backup": state["backup"] if state else str(backup.relative_to(ROOT)),
-        "original": state["original"] if state else {name: digest(data) for name, data in original.items()},
+        "backup": str(rollback_dir.relative_to(ROOT)),
+        "original": {name: digest(data) for name, data in rollback.items()},
         "installed": {name: digest(data) for name, data in output.items()},
     }
     previous_state = STATE.read_bytes() if STATE.exists() else None

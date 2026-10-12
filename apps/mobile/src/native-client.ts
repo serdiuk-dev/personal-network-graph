@@ -8,6 +8,7 @@ interface NativeTransport {
   login(fields: LoginFields): Promise<Session>;
   logout(): Promise<Session>;
   request(options: { id: string; path: string; method: string; body?: string }): Promise<NativeResponse>;
+  resetLocal(): Promise<void>;
   cancel(options: { id: string }): Promise<void>;
 }
 const native = registerPlugin<NativeTransport>('PNETTransport');
@@ -59,6 +60,11 @@ export async function signIn(fields: LoginFields): Promise<void> {
   if (result.authenticated !== true) throw new Error('Sign-in failed.');
   cancelPending();
   authenticated = true;
+}
+export async function reconnectDevice(): Promise<void> {
+  requireNative();
+  await native.resetLocal();
+  clearSession();
 }
 export async function signOut(): Promise<void> {
   requireNative();

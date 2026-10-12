@@ -249,20 +249,46 @@ model Owner {
   recoveryHashes String[]
   createdAt DateTime @default(now())
   sessions OwnerSession[]
+  mobileDevices MobileDevice[]
 }
 
 model OwnerSession {
   tokenHash String @id
+  deviceId String?
+  device MobileDevice? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   ownerId Int @default(1)
   owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   lastSeenAt DateTime @default(now())
   expiresAt DateTime
   @@index([expiresAt])
+  @@index([deviceId])
 }
 
 model AuthAttempt {
   id String @id
   hits Int
   windowStart DateTime
+}
+
+
+model MobileDevice {
+  id String @id @default(uuid())
+  ownerId Int @default(1)
+  owner Owner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name String
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt DateTime
+  sessions OwnerSession[]
+  credentials MobileRefresh[]
+  @@index([ownerId])
+}
+
+model MobileRefresh {
+  tokenHash String @id
+  deviceId String
+  device MobileDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  usedAt DateTime?
+  @@index([deviceId])
 }

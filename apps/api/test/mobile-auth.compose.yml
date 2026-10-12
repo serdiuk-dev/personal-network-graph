@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pnet_test
+      POSTGRES_PASSWORD: isolated-test-only
+      POSTGRES_DB: pnet_auth_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pnet_test -d pnet_auth_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [isolated]
+  tests:
+    build:
+      context: ../../..
+      dockerfile: apps/api/Dockerfile
+      target: build
+    environment:
+      DATABASE_URL: postgresql://pnet_test:isolated-test-only@db:5432/pnet_auth_test?schema=public
+      PNET_AUTH_TEST: isolated
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - sh
+      - -ec
+      - >-
+        ./node_modules/.bin/prisma migrate deploy --schema=prisma/schema.prisma &&
+        node --test --test-concurrency=1 test/auth.crypto.test.cjs test/auth.integration.test.cjs
+        test/mobile-auth.integration.test.cjs test/api.authorization.test.cjs
+    networks: [isolated]
+networks:
+  isolated:
+    internal: true

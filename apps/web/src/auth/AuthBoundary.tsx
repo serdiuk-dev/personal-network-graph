@@ -1,3 +1,4 @@
+import { MobileDevices } from './MobileDevices';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { checkSession, onSessionExpired, signIn, signOut } from './client';
 
@@ -68,9 +69,12 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   </form>;
 }
 export function SignOutButton() {
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   return <div className="pnet-auth-actions">
+    <button type="button" onClick={() => setDevicesOpen(true)}>Devices</button>
+    {devicesOpen && <MobileDevices onClose={() => setDevicesOpen(false)} />}
     <button type="button" disabled={busy} onClick={async () => {
       setBusy(true); setError('');
       try { await signOut(); }

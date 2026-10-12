@@ -22,7 +22,7 @@ writeFileSync(process.env.PNET_AUTH_KEY_FILE, randomBytes(32).toString('hex'), {
 for (const name of ['TELEGRAM_BOT_TOKEN', 'SMTP_HOST', 'SMTP_PASS', 'SMTP_USER', 'NOTIFICATION_TELEGRAM_CHAT_ID', 'NOTIFICATION_EMAIL_TO']) assert.ok(!process.env[name]);
 const { AppModule } = require('../dist/app.module');
 
-test('every actual application controller route is closed except health and login', async t => {
+test('every actual application controller route is closed except explicitly authenticated entry points', async t => {
   const app = await NestFactory.create(AppModule, { logger: false });
   app.setGlobalPrefix('api/v1');
   await app.init();
@@ -48,7 +48,7 @@ test('every actual application controller route is closed except health and logi
       }
     }
   }
-  assert.deepEqual(publicRoutes.sort(), ['GET /api/v1/health', 'POST /api/v1/auth/login']);
+  assert.deepEqual(publicRoutes.sort(), ['GET /api/v1/health', 'POST /api/v1/auth/login', 'POST /api/v1/auth/mobile/disconnect', 'POST /api/v1/auth/mobile/refresh']);
   assert.ok(count >= 30, `Unexpected protected route count: ${count}`);
   assert.equal((await fetch(base + '/api/v1/health')).status, 200);
   console.log(`Protected actual routes checked: ${count}`);

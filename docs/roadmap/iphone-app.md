@@ -111,3 +111,11 @@ Next: implement trusted-device mobile authentication:
 
 After mobile completion: Full System Test / Release Candidate,
 documentation and targeted cleanup. Social adapters remain deferred.
+
+
+## Face ID implementation candidate — 2026-10-12
+
+Trusted-device enrollment, rotation/revocation, WEB device management and
+Face ID Keychain access are prepared, not deployed or device-accepted.
+See docs/roadmap/mobile-faceid.md for the staged verification and rollout.
+Existing connected-v1 acceptance remains the last working checkpoint.

@@ -72,3 +72,12 @@ only in generated `ios/`. Source edits must be installed again before Xcode buil
 
 No production deploy or rebuild is needed for this implementation. Main, tags,
 WEB/API code, backups, rollback images and ~/19games are untouched.
+
+
+## Face ID candidate (requires new API and database migration)
+
+The earlier no-server-deployment instructions apply only to connected-v1.
+This candidate adds Face ID-gated trusted-device enrollment/renewal. Do not
+install this candidate on the phone until the API migration and deployment
+have completed. See docs/roadmap/mobile-faceid.md for prerequisites, tests,
+limits, revocation, recovery and rollout.
