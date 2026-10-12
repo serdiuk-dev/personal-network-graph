@@ -9,8 +9,9 @@
   "scripts": {
     "build": "vite build",
     "ios:add": "cap add ios --packagemanager SPM && node scripts/ios-target.mjs",
-    "ios:sync": "cap sync ios && node scripts/ios-target.mjs",
-    "ios:open": "cap open ios"
+    "ios:sync": "cap sync ios && node scripts/ios-target.mjs && python3 scripts/install-native.py",
+    "ios:open": "cap open ios",
+    "test:transport": "node --experimental-vm-modules --test tests/native-client.test.mjs"
   },
   "dependencies": {
     "@sigma/edge-curve": "3.1.0",

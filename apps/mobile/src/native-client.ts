@@ -1,0 +1,110 @@
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+type Session = { authenticated: boolean };
+type NativeResponse = { status: number; contentType: string; body: string };
+export type LoginFields = { gatewayUser: string; gatewayPassword: string; login: string; password: string; code: string };
+interface NativeTransport {
+  session(): Promise<Session>;
+  login(fields: LoginFields): Promise<Session>;
+  logout(): Promise<Session>;
+  request(options: { id: string; path: string; method: string; body?: string }): Promise<NativeResponse>;
+  cancel(options: { id: string }): Promise<void>;
+}
+const native = registerPlugin<NativeTransport>('PNETTransport');
+const expired = new EventTarget();
+let generation = 0;
+let authenticated = false;
+let checking: Promise<boolean> | null = null;
+const pending = new Set<string>();
+
+function requireNative() {
+  if (Capacitor.getPlatform() !== 'ios' || !Capacitor.isPluginAvailable('PNETTransport')) {
+    throw new Error('Open the installed iPhone app. Native transport is unavailable.');
+  }
+}
+function cancelPending() {
+  generation++;
+  for (const id of pending) void native.cancel({ id }).catch(() => {});
+  pending.clear();
+}
+export function clearSession() {
+  authenticated = false;
+  cancelPending();
+  expired.dispatchEvent(new Event('expired'));
+}
+export function onSessionExpired(listener: () => void) {
+  expired.addEventListener('expired', listener);
+  return () => expired.removeEventListener('expired', listener);
+}
+export async function checkSession(signal?: AbortSignal): Promise<boolean> {
+  requireNative();
+  signal?.throwIfAborted();
+  if (!checking) {
+    const before = generation;
+    checking = native.session().then(result => {
+      if (before !== generation) return false;
+      authenticated = result.authenticated === true;
+      if (!authenticated) clearSession();
+      return authenticated;
+    }).finally(() => { checking = null; });
+  }
+  const result = await checking;
+  signal?.throwIfAborted();
+  return result;
+}
+export async function signIn(fields: LoginFields): Promise<void> {
+  requireNative();
+  if (checking) await checking;
+  const result = await native.login(fields);
+  if (result.authenticated !== true) throw new Error('Sign-in failed.');
+  cancelPending();
+  authenticated = true;
+}
+export async function signOut(): Promise<void> {
+  requireNative();
+  cancelPending();
+  await native.logout();
+  clearSession();
+}
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  requireNative();
+  init.signal?.throwIfAborted();
+  if (!authenticated) throw new Error('Authentication required.');
+  // Native code independently applies a route/method allowlist and sets all credentials.
+  if (!/^\/api\/v1\/[A-Za-z0-9/-]+$/.test(path)) throw new Error('Invalid API path.');
+  const method = (init.method ?? 'GET').toUpperCase();
+  if (!['GET', 'POST', 'PATCH'].includes(method)) throw new Error('This action is not enabled in the first connected checkpoint.');
+  if (init.body !== undefined && init.body !== null && typeof init.body !== 'string') {
+    throw new Error('Photo uploads are not enabled in the first connected checkpoint.');
+  }
+  const headers = new Headers(init.headers);
+  for (const [key, value] of headers) {
+    if (key !== 'content-type' || value.toLowerCase() !== 'application/json') throw new Error('Unsupported request header.');
+  }
+  const id = crypto.randomUUID();
+  const before = generation;
+  const cancel = () => { void native.cancel({ id }).catch(() => {}); };
+  pending.add(id);
+  try {
+    // Dispatch before installing the abort handler: cancel must follow request on the bridge.
+    const request = native.request({ id, path, method, ...(typeof init.body === 'string' ? { body: init.body } : {}) });
+    init.signal?.addEventListener('abort', cancel, { once: true });
+    if (init.signal?.aborted) cancel();
+    const result = await request;
+    init.signal?.throwIfAborted();
+    if (before !== generation) throw new Error('Session changed.');
+    if (!Number.isInteger(result.status) || result.status < 200 || result.status > 599) throw new Error('Invalid server response.');
+    const bytes = Uint8Array.from(atob(result.body), c => c.charCodeAt(0));
+    return new Response([204, 205, 304].includes(result.status) ? null : bytes, {
+      status: result.status,
+      headers: { 'Content-Type': result.contentType, 'Cache-Control': 'no-store' },
+    });
+  } catch (error) {
+    if (before === generation && (error as { code?: string })?.code === 'SESSION_EXPIRED') clearSession();
+    init.signal?.throwIfAborted();
+    throw error;
+  } finally {
+    init.signal?.removeEventListener('abort', cancel);
+    pending.delete(id);
+  }
+}

@@ -1,6 +1,6 @@
 # iPhone application — planning checkpoint
 
-Status: offline technical prototype accepted on simulators and physical iPhone; production server integration is not implemented.
+Status: connected iPhone contact read/create/edit accepted; mobile phase remains in progress.
 Base: published WEB v0.44.0, commit 0c9555ead886a9af7aec86e9a70e4a24ef7e683b.
 
 ## Scope
@@ -79,3 +79,35 @@ This scope supersedes the earlier single-device target.
 - Two-finger pinch, landscape, accessibility/large text/VoiceOver and the full
   device range remain unverified.
 - Next: secure mobile transport/auth/session, then server-backed read/write.
+
+## Connected transport implementation — 2026-10-11
+
+Offline checkpoint published on feature/iphone-app:
+`1fb5aa272509f050f8442809c0bc0445c64af01f`.
+
+A native HTTPS/Keychain transport implementation is prepared using the existing
+BasicAuth + owner password/TOTP + cookie/CSRF flow. WEB/API sources and production
+are unchanged. Reads and contact create/edit are implemented but not device-
+accepted. Other mutations are deliberately gated until targeted acceptance.
+Next: Mac native compilation, then physical login/session/read/contact-save checks.
+See apps/mobile/README.md and VALIDATION.md for boundaries and remaining work.
+
+
+## Connected checkpoint acceptance — 2026-10-12
+
+Owner accepted standalone iPhone operation and bidirectional contact
+create/edit synchronization with WEB. See apps/mobile/VALIDATION.md.
+Earlier offline-only and pending contact acceptance statements are historical.
+
+Next: implement trusted-device mobile authentication:
+- Initial enrollment through existing full authentication.
+- Face ID-protected mobile credential in device-only Keychain.
+- Short-lived access sessions and rotating renewal credentials.
+- Server-side revocation, expiry and replay handling.
+- Device access revocation from WEB.
+- Keep existing WEB password/TOTP, CSRF and origin protections.
+- Do not store the owner password or simply extend the WEB session lifetime.
+- Face ID and credential renewal are NOT implemented in this checkpoint.
+
+After mobile completion: Full System Test / Release Candidate,
+documentation and targeted cleanup. Social adapters remain deferred.

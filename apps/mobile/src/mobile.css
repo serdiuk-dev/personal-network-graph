@@ -4,3 +4,6 @@ html, body, #root { height: 100%; min-height: 0; overflow: hidden; }
   background: #1c1b20; }
 .prototype-banner { flex: none; color: #fff; background: #47364f; text-align: center; font: 12px/1.5 system-ui; padding: 4px 8px; }
 .prototype-shell > .pnet-app { flex: 1; height: auto; min-height: 0; }
+.prototype-shell > .pnet-auth { flex: 1; min-height: 0; overflow-y: auto; display: block; padding: 16px; }
+.prototype-shell > .pnet-auth .pnet-auth-card { box-sizing: border-box; margin: 0 auto; }
+.prototype-shell > .pnet-auth input { font-size: 16px; }

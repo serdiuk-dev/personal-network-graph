@@ -2,8 +2,10 @@
   "appId": "dev.serdiuk.pnet.prototype",
   "appName": "PNET Prototype",
   "webDir": "dist",
+  "loggingBehavior": "none",
   "ios": {
-    "contentInset": "never"
+    "contentInset": "never",
+    "webContentsDebuggingEnabled": false
   },
   "plugins": {
     "CapacitorHttp": {
