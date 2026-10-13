@@ -112,3 +112,15 @@ Confirmed from the owner's Mac terminal output:
 Production API/WEB deployment and production migration remain pending.
 Physical-device Face ID enrollment, unlock and revocation remain pending.
 This checkpoint is a deployment candidate, not final feature acceptance.
+
+## Historical migration formatting repair — 2026-10-12
+
+Production preflight stopped before executing the Face ID migration.
+The stored checksum for 20260925160000_add_contact_event_reminders
+differs from Git solely because the applied file has one additional
+trailing newline. Restoring that newline reproduces the exact production
+SHA256: ddf03b13da556450d26376c0c95f711b18296b2dcfd0274c4222178a172670e4.
+
+SQL statements are unchanged. No production migration-history records
+were modified. Rebuild the migration image before retrying preflight.
+Production Face ID migration and application rollout remain pending.
