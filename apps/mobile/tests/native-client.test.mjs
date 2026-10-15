@@ -188,7 +188,7 @@ test('taxonomy routes reject malformed IDs, bulk deletes and unsupported assignm
     ]) await assert.rejects(client.apiFetch(path, { method }));
     await assert.rejects(client.apiFetch(`/api/v1/people/${id}/${kind}/${id}`, { method: 'POST', body: '{}' }));
   }
-  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/contact-channels`, { method: 'POST', body: '{}' }));
+  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/photo`, { method: 'POST', body: '{}' }));
   assert.equal(calls.length, 0);
 });
 
@@ -224,6 +224,41 @@ test('event/reminder permissions reject bulk operations, malformed IDs and dispa
     [`/api/v1/people/invalid/contact-events`, 'POST'],
     [`/api/v1/people/${id}/contact-events/`, 'POST'],
     [`/api/v1/contact-events/${id}`, 'PUT'],
+  ]) await assert.rejects(client.apiFetch(path, { method }));
+  assert.equal(calls.length, 0);
+});
+
+
+test('contact channels preserve editable routing fields and support bodyless deletion', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const id = '00000000-0000-4000-8000-000000000001';
+  const payload = JSON.stringify({ platform: 'EMAIL', address: 'test@example.invalid',
+    isPreferred: true, priority: 2, isActive: false, automationAllowed: false, notes: 'Test' });
+  await client.apiFetch(`/api/v1/people/${id}/contact-channels`, { method: 'POST', body: payload });
+  await client.apiFetch(`/api/v1/contact-channels/${id}`, { method: 'PATCH', body: payload });
+  await client.apiFetch(`/api/v1/contact-channels/${id}`, { method: 'DELETE' });
+  assert.deepEqual(calls.map(c => c.method), ['POST', 'PATCH', 'DELETE']);
+  assert.equal(calls[0].body, payload);
+  assert.equal(calls[1].body, payload);
+  assert.equal(Object.hasOwn(calls[2], 'body'), false);
+});
+
+test('channel access cannot delete collections, send messages or mutate malformed paths', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const id = '00000000-0000-4000-8000-000000000001';
+  for (const [path, method] of [
+    ['/api/v1/contact-channels', 'DELETE'], ['/api/v1/contact-channels', 'POST'],
+    [`/api/v1/people/${id}/contact-channels`, 'DELETE'],
+    [`/api/v1/people/${id}/contact-channels`, 'PATCH'],
+    ['/api/v1/people/invalid/contact-channels', 'POST'],
+    ['/api/v1/contact-channels/invalid', 'PATCH'],
+    [`/api/v1/contact-channels/${id}/`, 'DELETE'],
+    [`/api/v1/contact-channels/${id}`, 'POST'],
+    [`/api/v1/contact-channels/${id}`, 'PUT'],
+    [`/api/v1/contact-channels/${id}/send`, 'POST'],
+    ['/api/v1/messages', 'POST'], [`/api/v1/people/${id}`, 'DELETE'],
   ]) await assert.rejects(client.apiFetch(path, { method }));
   assert.equal(calls.length, 0);
 });
