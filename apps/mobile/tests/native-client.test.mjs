@@ -133,7 +133,7 @@ test('relationship access does not enable other mutations or replay expired writ
     ['/api/v1/relationships', 'DELETE'], ['/api/v1/relationships', 'PATCH'],
     ['/api/v1/relationships/not-a-uuid', 'DELETE'],
     [`/api/v1/relationships/${id}/`, 'DELETE'], [`/api/v1/relationships/${id}/photo`, 'POST'],
-    [`/api/v1/people/${id}`, 'DELETE'], ['/api/v1/categories', 'POST'],
+    [`/api/v1/people/${id}`, 'DELETE'], ['/api/v1/graph-styles', 'POST'],
     ['/api/v1/auth/mobile/revoke', 'POST'], ['/api/v1/messages', 'POST'],
     [`/api/v1/relationships/${id}`, 'PUT'],
   ]) await assert.rejects(client.apiFetch(path, { method }));
@@ -149,4 +149,45 @@ test('relationship access does not enable other mutations or replay expired writ
   assert.equal(writes, 1);
   await assert.rejects(expired.client.apiFetch('/api/v1/relationships', { method: 'POST', body: '{}' }), /Authentication required/);
   assert.equal(writes, 1);
+});
+
+
+test('categories and interests support CRUD and bodyless contact assignment/removal', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const person = '00000000-0000-4000-8000-000000000001';
+  const item = '00000000-0000-4000-8000-000000000002';
+  for (const kind of ['categories', 'interests']) {
+    const collection = `/api/v1/${kind}`;
+    const assignment = `/api/v1/people/${person}/${kind}/${item}`;
+    await client.apiFetch(collection, { method: 'POST', body: '{"name":"Test"}' });
+    await client.apiFetch(`${collection}/${item}`, { method: 'PATCH', body: '{"name":"Renamed"}' });
+    await client.apiFetch(assignment, { method: 'POST' });
+    await client.apiFetch(assignment, { method: 'DELETE' });
+    await client.apiFetch(`${collection}/${item}`, { method: 'DELETE' });
+  }
+  assert.deepEqual(calls.map(c => c.method), ['POST', 'PATCH', 'POST', 'DELETE', 'DELETE', 'POST', 'PATCH', 'POST', 'DELETE', 'DELETE']);
+  assert.equal(calls[0].body, '{"name":"Test"}');
+  assert.equal(calls[1].body, '{"name":"Renamed"}');
+  for (const index of [2, 3, 4, 7, 8, 9]) assert.equal(Object.hasOwn(calls[index], 'body'), false);
+});
+
+test('taxonomy routes reject malformed IDs, bulk deletes and unsupported assignment operations', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const id = '00000000-0000-4000-8000-000000000001';
+  for (const kind of ['categories', 'interests']) {
+    for (const [path, method] of [
+      [`/api/v1/${kind}`, 'DELETE'], [`/api/v1/${kind}`, 'PATCH'],
+      [`/api/v1/${kind}/invalid`, 'PATCH'], [`/api/v1/${kind}/${id}/`, 'DELETE'],
+      [`/api/v1/people/${id}/${kind}`, 'POST'],
+      [`/api/v1/people/invalid/${kind}/${id}`, 'POST'],
+      [`/api/v1/people/${id}/${kind}/invalid`, 'DELETE'],
+      [`/api/v1/people/${id}/${kind}/${id}`, 'PATCH'],
+      [`/api/v1/people/${id}/${kind}/${id}/extra`, 'POST'],
+    ]) await assert.rejects(client.apiFetch(path, { method }));
+    await assert.rejects(client.apiFetch(`/api/v1/people/${id}/${kind}/${id}`, { method: 'POST', body: '{}' }));
+  }
+  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/contact-events`, { method: 'POST', body: '{}' }));
+  assert.equal(calls.length, 0);
 });

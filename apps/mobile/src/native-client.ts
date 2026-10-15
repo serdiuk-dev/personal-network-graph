@@ -81,12 +81,15 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const method = (init.method ?? 'GET').toUpperCase();
   const uuid = '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}';
   const relationship = new RegExp(`^/api/v1/relationships/${uuid}$`).test(path);
+  const taxonomyItem = new RegExp(`^/api/v1/(?:categories|interests)/${uuid}$`).test(path);
+  const assignment = new RegExp(`^/api/v1/people/${uuid}/(?:categories|interests)/${uuid}$`).test(path);
   const mutationAllowed =
-    (method === 'POST' && ['/api/v1/people', '/api/v1/relationships'].includes(path)) ||
-    (method === 'PATCH' && (new RegExp(`^/api/v1/people/${uuid}$`).test(path) || relationship)) ||
-    (method === 'DELETE' && relationship);
+    (method === 'POST' && ['/api/v1/people', '/api/v1/relationships', '/api/v1/categories', '/api/v1/interests'].includes(path)) ||
+    (method === 'PATCH' && (new RegExp(`^/api/v1/people/${uuid}$`).test(path) || relationship || taxonomyItem)) ||
+    (method === 'DELETE' && (relationship || taxonomyItem)) ||
+    ((method === 'POST' || method === 'DELETE') && assignment);
   if (method !== 'GET' && !mutationAllowed) throw new Error('This action is not enabled in the iPhone app.');
-  if ((method === 'GET' || method === 'DELETE') && init.body != null) throw new Error('Invalid request body.');
+  if ((method === 'GET' || method === 'DELETE' || assignment) && init.body != null) throw new Error('Invalid request body.');
   if (init.body !== undefined && init.body !== null && typeof init.body !== 'string') {
     throw new Error('Photo uploads are not enabled in the first connected checkpoint.');
   }

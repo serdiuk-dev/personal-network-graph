@@ -372,8 +372,12 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // Connected app reads; contact create/update and relationship create/update/delete.
+    // Connected reads; contact create/update, relationships and taxonomy management.
     // Other mutations (including messages and photo upload) fail before networking.
+    private func taxonomyAssignment(_ path: String) -> Bool {
+        let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+        return matches(path, "^/api/v1/people/" + id + "/(?:categories|interests)/" + id + "$")
+    }
     private func allowed(_ path: String, _ method: String) -> Bool {
         let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
         if method == "GET" {
@@ -382,7 +386,10 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
         return (method == "POST" && path == "/api/v1/people") ||
             (method == "PATCH" && matches(path, "^/api/v1/people/" + id + "$")) ||
             (method == "POST" && path == "/api/v1/relationships") ||
-            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/relationships/" + id + "$"))
+            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/relationships/" + id + "$")) ||
+            (method == "POST" && (path == "/api/v1/categories" || path == "/api/v1/interests")) ||
+            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/(?:categories|interests)/" + id + "$")) ||
+            ((method == "POST" || method == "DELETE") && taxonomyAssignment(path))
     }
     @objc public func request(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -395,8 +402,9 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("This action is not enabled in the iPhone app."); return
             }
             let body = call.getString("body").map { Data($0.utf8) }
-            if (method == "GET" || method == "DELETE") && body != nil { call.reject("Invalid request body."); return }
-            if method == "POST" || method == "PATCH" {
+            let assignment = self.taxonomyAssignment(path)
+            if (method == "GET" || method == "DELETE" || assignment) && body != nil { call.reject("Invalid request body."); return }
+            if (method == "POST" || method == "PATCH") && !assignment {
                 guard let body = body, body.count <= 100 * 1024,
                       (try? JSONSerialization.jsonObject(with: body)) is [String: Any] else {
                     call.reject("Invalid JSON request."); return
