@@ -44,7 +44,7 @@ test('contacts and binary photos are adapted to Response; no auth headers cross 
   assert.deepEqual([...new Uint8Array(await image.arrayBuffer())], [0, 1, 255]);
 });
 
-test('external URLs, traversal, query strings, credentials, deletes and uploads fail before bridge request', async () => {
+test('external URLs, traversal, query strings, credentials, contact deletes and uploads fail before bridge request', async () => {
   const { client, calls } = await setup();
   await client.checkSession();
   for (const path of ['https://evil.invalid/api/v1/people', '//evil.invalid/api/v1/people', '/api/v1/../auth', '/api/v1/%2e%2e/auth', '/api/v1/people?url=evil']) {
@@ -100,4 +100,53 @@ test('logout invalidates in-flight data; failed logout retains a retryable sessi
   await failed.client.checkSession();
   await assert.rejects(failed.client.signOut(), /Offline/);
   assert.equal((await failed.client.apiFetch('/api/v1/people')).status, 200);
+});
+
+
+test('relationship create/edit/delete use exact routes; deletion permits an empty response', async () => {
+  const calls = [];
+  const { client } = await setup({ request: async options => {
+    calls.push(options);
+    return { status: options.method === 'DELETE' ? 204 : 200,
+      contentType: 'application/json', body: options.method === 'DELETE' ? '' : 'e30=' };
+  } });
+  await client.checkSession();
+  const path = '/api/v1/relationships/00000000-0000-4000-8000-000000000001';
+  const payload = JSON.stringify({ fromId: '00000000-0000-4000-8000-000000000002',
+    toId: '00000000-0000-4000-8000-000000000003', strength: 3 });
+  await client.apiFetch('/api/v1/relationships', { method: 'POST', body: payload });
+  await client.apiFetch(path, { method: 'PATCH', body: '{"strength":4}' });
+  const removed = await client.apiFetch(path, { method: 'DELETE' });
+  assert.equal(removed.status, 204);
+  assert.equal(await removed.text(), '');
+  assert.deepEqual(calls.map(c => c.method), ['POST', 'PATCH', 'DELETE']);
+  assert.equal(calls[0].body, payload);
+  assert.equal(calls[1].body, '{"strength":4}');
+  assert.equal(Object.hasOwn(calls[2], 'body'), false);
+});
+
+test('relationship access does not enable other mutations or replay expired writes', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const id = '00000000-0000-4000-8000-000000000001';
+  for (const [path, method] of [
+    ['/api/v1/relationships', 'DELETE'], ['/api/v1/relationships', 'PATCH'],
+    ['/api/v1/relationships/not-a-uuid', 'DELETE'],
+    [`/api/v1/relationships/${id}/`, 'DELETE'], [`/api/v1/relationships/${id}/photo`, 'POST'],
+    [`/api/v1/people/${id}`, 'DELETE'], ['/api/v1/categories', 'POST'],
+    ['/api/v1/auth/mobile/revoke', 'POST'], ['/api/v1/messages', 'POST'],
+    [`/api/v1/relationships/${id}`, 'PUT'],
+  ]) await assert.rejects(client.apiFetch(path, { method }));
+  await assert.rejects(client.apiFetch(`/api/v1/relationships/${id}`, { method: 'DELETE', body: '{}' }));
+  assert.equal(calls.length, 0);
+  let writes = 0;
+  const expired = await setup({ request: async () => {
+    writes++;
+    throw Object.assign(new Error('Expired'), { code: 'SESSION_EXPIRED' });
+  } });
+  await expired.client.checkSession();
+  await assert.rejects(expired.client.apiFetch('/api/v1/relationships', { method: 'POST', body: '{}' }));
+  assert.equal(writes, 1);
+  await assert.rejects(expired.client.apiFetch('/api/v1/relationships', { method: 'POST', body: '{}' }), /Authentication required/);
+  assert.equal(writes, 1);
 });

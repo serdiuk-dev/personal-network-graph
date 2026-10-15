@@ -372,7 +372,7 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // First connected checkpoint: all app reads; contact create/update only.
+    // Connected app reads; contact create/update and relationship create/update/delete.
     // Other mutations (including messages and photo upload) fail before networking.
     private func allowed(_ path: String, _ method: String) -> Bool {
         let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
@@ -380,7 +380,9 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
             return matches(path, "^/api/v1/(?:people(?:/" + id + "(?:/(?:photo|contact-events|contact-channels))?)?|graph|graph-styles|analytics/network|categories|interests|relationships|relationship-styles|reminders/(?:upcoming|history))$")
         }
         return (method == "POST" && path == "/api/v1/people") ||
-            (method == "PATCH" && matches(path, "^/api/v1/people/" + id + "$"))
+            (method == "PATCH" && matches(path, "^/api/v1/people/" + id + "$")) ||
+            (method == "POST" && path == "/api/v1/relationships") ||
+            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/relationships/" + id + "$"))
     }
     @objc public func request(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -390,11 +392,11 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let id = call.getString("id"), UUID(uuidString: id) != nil,
                   let path = call.getString("path"), let method = call.getString("method"),
                   self.allowed(path, method) else {
-                call.reject("This action is not enabled in the first connected checkpoint."); return
+                call.reject("This action is not enabled in the iPhone app."); return
             }
             let body = call.getString("body").map { Data($0.utf8) }
-            if method == "GET" && body != nil { call.reject("Invalid request body."); return }
-            if method != "GET" {
+            if (method == "GET" || method == "DELETE") && body != nil { call.reject("Invalid request body."); return }
+            if method == "POST" || method == "PATCH" {
                 guard let body = body, body.count <= 100 * 1024,
                       (try? JSONSerialization.jsonObject(with: body)) is [String: Any] else {
                     call.reject("Invalid JSON request."); return

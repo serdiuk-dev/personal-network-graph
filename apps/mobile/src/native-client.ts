@@ -79,7 +79,14 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   // Native code independently applies a route/method allowlist and sets all credentials.
   if (!/^\/api\/v1\/[A-Za-z0-9/-]+$/.test(path)) throw new Error('Invalid API path.');
   const method = (init.method ?? 'GET').toUpperCase();
-  if (!['GET', 'POST', 'PATCH'].includes(method)) throw new Error('This action is not enabled in the first connected checkpoint.');
+  const uuid = '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}';
+  const relationship = new RegExp(`^/api/v1/relationships/${uuid}$`).test(path);
+  const mutationAllowed =
+    (method === 'POST' && ['/api/v1/people', '/api/v1/relationships'].includes(path)) ||
+    (method === 'PATCH' && (new RegExp(`^/api/v1/people/${uuid}$`).test(path) || relationship)) ||
+    (method === 'DELETE' && relationship);
+  if (method !== 'GET' && !mutationAllowed) throw new Error('This action is not enabled in the iPhone app.');
+  if ((method === 'GET' || method === 'DELETE') && init.body != null) throw new Error('Invalid request body.');
   if (init.body !== undefined && init.body !== null && typeof init.body !== 'string') {
     throw new Error('Photo uploads are not enabled in the first connected checkpoint.');
   }
