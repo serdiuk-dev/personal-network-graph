@@ -124,3 +124,29 @@ SHA256: ddf03b13da556450d26376c0c95f711b18296b2dcfd0274c4222178a172670e4.
 SQL statements are unchanged. No production migration-history records
 were modified. Rebuild the migration image before retrying preflight.
 Production Face ID migration and application rollout remain pending.
+
+## Production and physical iPhone acceptance — 2026-10-15
+
+Owner-confirmed acceptance:
+- WEB opens and contacts remain accessible.
+- Initial iPhone enrollment with full credentials and Authenticator succeeds.
+- Face ID unlock works after backgrounding and standalone launch without cable.
+- WEB device revocation prevents continued access with Face ID alone.
+- Full authentication after revocation re-enrolls the iPhone.
+- Subsequent Face ID unlock works again.
+
+Previously confirmed deployment evidence:
+- PostgreSQL authentication tests: 27 passed.
+- Mobile transport tests: 5 passed.
+- iOS Simulator Swift build succeeded.
+- Production migration completed with matching historical checksums.
+- API and WEB rollout succeeded; API, WEB and DB reported healthy.
+- Deployment preserved the DB container and private mounts.
+
+Application images were built from db057933bbb4b87002666a6027b491b2fb2c4d26.
+Migration image was built from 53a1f8d03222e110989bc7045ea3c193aa1a2225.
+The latter changes only historical migration formatting and documentation.
+
+The tested Face ID flow is accepted. This does not declare the entire
+mobile application complete or verify every documented failure scenario.
+Production Git checkout alignment remains pending.
