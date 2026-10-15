@@ -83,11 +83,15 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const relationship = new RegExp(`^/api/v1/relationships/${uuid}$`).test(path);
   const taxonomyItem = new RegExp(`^/api/v1/(?:categories|interests)/${uuid}$`).test(path);
   const assignment = new RegExp(`^/api/v1/people/${uuid}/(?:categories|interests)/${uuid}$`).test(path);
+  const eventCollection = new RegExp(`^/api/v1/people/${uuid}/contact-events$`).test(path);
+  const eventOrReminder = new RegExp(`^/api/v1/(?:contact-events|reminders)/${uuid}$`).test(path);
   const mutationAllowed =
     (method === 'POST' && ['/api/v1/people', '/api/v1/relationships', '/api/v1/categories', '/api/v1/interests'].includes(path)) ||
     (method === 'PATCH' && (new RegExp(`^/api/v1/people/${uuid}$`).test(path) || relationship || taxonomyItem)) ||
     (method === 'DELETE' && (relationship || taxonomyItem)) ||
-    ((method === 'POST' || method === 'DELETE') && assignment);
+    ((method === 'POST' || method === 'DELETE') && assignment) ||
+    (method === 'POST' && eventCollection) ||
+    ((method === 'PATCH' || method === 'DELETE') && eventOrReminder);
   if (method !== 'GET' && !mutationAllowed) throw new Error('This action is not enabled in the iPhone app.');
   if ((method === 'GET' || method === 'DELETE' || assignment) && init.body != null) throw new Error('Invalid request body.');
   if (init.body !== undefined && init.body !== null && typeof init.body !== 'string') {

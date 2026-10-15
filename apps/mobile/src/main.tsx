@@ -7,7 +7,7 @@ import './mobile.css';
 import { AuthBoundary } from './MobileAuth';
 createRoot(document.getElementById('root')!).render(<React.StrictMode>
   <div className="prototype-shell">
-    <div className="prototype-banner">Connected preview · Contacts · Relationships · Categories & interests</div>
+    <div className="prototype-banner">Connected preview · Contacts · Relationships · Events & reminders</div>
     <AuthBoundary><App /></AuthBoundary>
   </div>
 </React.StrictMode>);

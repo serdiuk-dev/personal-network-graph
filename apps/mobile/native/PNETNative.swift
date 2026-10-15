@@ -372,7 +372,7 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // Connected reads; contact create/update, relationships and taxonomy management.
+    // Connected reads; contact create/update, relationships, taxonomy, events and reminders.
     // Other mutations (including messages and photo upload) fail before networking.
     private func taxonomyAssignment(_ path: String) -> Bool {
         let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
@@ -389,7 +389,9 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
             ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/relationships/" + id + "$")) ||
             (method == "POST" && (path == "/api/v1/categories" || path == "/api/v1/interests")) ||
             ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/(?:categories|interests)/" + id + "$")) ||
-            ((method == "POST" || method == "DELETE") && taxonomyAssignment(path))
+            ((method == "POST" || method == "DELETE") && taxonomyAssignment(path)) ||
+            (method == "POST" && matches(path, "^/api/v1/people/" + id + "/contact-events$")) ||
+            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/(?:contact-events|reminders)/" + id + "$"))
     }
     @objc public func request(_ call: CAPPluginCall) {
         DispatchQueue.main.async {

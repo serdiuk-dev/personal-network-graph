@@ -188,6 +188,42 @@ test('taxonomy routes reject malformed IDs, bulk deletes and unsupported assignm
     ]) await assert.rejects(client.apiFetch(path, { method }));
     await assert.rejects(client.apiFetch(`/api/v1/people/${id}/${kind}/${id}`, { method: 'POST', body: '{}' }));
   }
-  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/contact-events`, { method: 'POST', body: '{}' }));
+  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/contact-channels`, { method: 'POST', body: '{}' }));
+  assert.equal(calls.length, 0);
+});
+
+
+test('event creation and event/reminder editing and removal use existing API routes', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const id = '00000000-0000-4000-8000-000000000001';
+  const body = JSON.stringify({ type: 'meeting', title: 'Test', dueAt: '2030-01-01T12:00:00.000Z' });
+  await client.apiFetch(`/api/v1/people/${id}/contact-events`, { method: 'POST', body });
+  for (const kind of ['contact-events', 'reminders']) {
+    await client.apiFetch(`/api/v1/${kind}/${id}`, { method: 'PATCH', body: '{}' });
+    await client.apiFetch(`/api/v1/${kind}/${id}`, { method: 'DELETE' });
+  }
+  await client.apiFetch('/api/v1/reminders/upcoming');
+  await client.apiFetch('/api/v1/reminders/history');
+  assert.equal(calls[0].body, body);
+  assert.deepEqual(calls.map(c => c.method), ['POST', 'PATCH', 'DELETE', 'PATCH', 'DELETE', 'GET', 'GET']);
+  for (const index of [2, 4]) assert.equal(Object.hasOwn(calls[index], 'body'), false);
+});
+
+test('event/reminder permissions reject bulk operations, malformed IDs and dispatch routes', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const id = '00000000-0000-4000-8000-000000000001';
+  for (const [path, method] of [
+    ['/api/v1/contact-events', 'POST'], ['/api/v1/reminders', 'POST'],
+    ['/api/v1/reminders', 'DELETE'], ['/api/v1/contact-events', 'DELETE'],
+    ['/api/v1/reminders/upcoming', 'DELETE'], ['/api/v1/reminders/history', 'PATCH'],
+    ['/api/v1/reminders/not-a-uuid', 'DELETE'],
+    [`/api/v1/reminders/${id}/send`, 'POST'], [`/api/v1/contact-events/${id}`, 'POST'],
+    [`/api/v1/people/${id}/contact-events`, 'DELETE'],
+    [`/api/v1/people/invalid/contact-events`, 'POST'],
+    [`/api/v1/people/${id}/contact-events/`, 'POST'],
+    [`/api/v1/contact-events/${id}`, 'PUT'],
+  ]) await assert.rejects(client.apiFetch(path, { method }));
   assert.equal(calls.length, 0);
 });
