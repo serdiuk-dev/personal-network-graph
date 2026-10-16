@@ -7,7 +7,7 @@ interface NativeTransport {
   session(): Promise<Session>;
   login(fields: LoginFields): Promise<Session>;
   logout(): Promise<Session>;
-  request(options: { id: string; path: string; method: string; body?: string }): Promise<NativeResponse>;
+  request(options: { id: string; path: string; method: string; body?: string; photo?: { base64: string; mimeType: string } }): Promise<NativeResponse>;
   resetLocal(): Promise<void>;
   cancel(options: { id: string }): Promise<void>;
 }
@@ -87,6 +87,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const eventOrReminder = new RegExp(`^/api/v1/(?:contact-events|reminders)/${uuid}$`).test(path);
   const channelCollection = new RegExp(`^/api/v1/people/${uuid}/contact-channels$`).test(path);
   const channelItem = new RegExp(`^/api/v1/contact-channels/${uuid}$`).test(path);
+  const photoPath = new RegExp(`^/api/v1/people/${uuid}/photo$`).test(path);
   const mutationAllowed =
     (method === 'POST' && ['/api/v1/people', '/api/v1/relationships', '/api/v1/categories', '/api/v1/interests'].includes(path)) ||
     (method === 'PATCH' && (new RegExp(`^/api/v1/people/${uuid}$`).test(path) || relationship || taxonomyItem)) ||
@@ -95,23 +96,45 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     (method === 'POST' && eventCollection) ||
     ((method === 'PATCH' || method === 'DELETE') && eventOrReminder) ||
     (method === 'POST' && channelCollection) ||
-    ((method === 'PATCH' || method === 'DELETE') && channelItem);
+    ((method === 'PATCH' || method === 'DELETE') && channelItem) ||
+    ((method === 'POST' || method === 'DELETE') && photoPath);
   if (method !== 'GET' && !mutationAllowed) throw new Error('This action is not enabled in the iPhone app.');
   if ((method === 'GET' || method === 'DELETE' || assignment) && init.body != null) throw new Error('Invalid request body.');
-  if (init.body !== undefined && init.body !== null && typeof init.body !== 'string') {
-    throw new Error('Photo uploads are not enabled in the first connected checkpoint.');
+  let photoFile: Blob | undefined;
+  if (photoPath && method === 'POST') {
+    if (!(init.body instanceof FormData)) throw new Error('Choose one image to upload.');
+    const entries = [...init.body.entries()];
+    if (entries.length !== 1 || entries[0][0] !== 'file' || !(entries[0][1] instanceof Blob)) {
+      throw new Error('Choose exactly one image.');
+    }
+    photoFile = entries[0][1];
+    if (!photoFile.size || photoFile.size > 5 * 1024 * 1024) throw new Error('Choose an image up to 5 MB.');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(photoFile.type)) throw new Error('Choose JPG, PNG or WebP.');
+  } else if (init.body != null && typeof init.body !== 'string') {
+    throw new Error('Unsupported request body.');
   }
   const headers = new Headers(init.headers);
   for (const [key, value] of headers) {
-    if (key !== 'content-type' || value.toLowerCase() !== 'application/json') throw new Error('Unsupported request header.');
+    if (photoFile || key !== 'content-type' || value.toLowerCase() !== 'application/json') throw new Error('Unsupported request header.');
   }
   const id = crypto.randomUUID();
   const before = generation;
   const cancel = () => { void native.cancel({ id }).catch(() => {}); };
   pending.add(id);
   try {
+    let photo: { base64: string; mimeType: string } | undefined;
+    if (photoFile) {
+      const bytes = new Uint8Array(await photoFile.arrayBuffer());
+      init.signal?.throwIfAborted();
+      if (before !== generation || !authenticated) throw new Error('Session changed.');
+      let binary = '';
+      for (let offset = 0; offset < bytes.length; offset += 32768) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+      }
+      photo = { base64: btoa(binary), mimeType: photoFile.type };
+    }
     // Dispatch before installing the abort handler: cancel must follow request on the bridge.
-    const request = native.request({ id, path, method, ...(typeof init.body === 'string' ? { body: init.body } : {}) });
+    const request = native.request({ id, path, method, ...(typeof init.body === 'string' ? { body: init.body } : {}), ...(photo ? { photo } : {}) });
     init.signal?.addEventListener('abort', cancel, { once: true });
     if (init.signal?.aborted) cancel();
     const result = await request;

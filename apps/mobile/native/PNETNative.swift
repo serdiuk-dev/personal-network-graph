@@ -373,10 +373,14 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     // Connected reads; contact create/update, relationships, taxonomy, events, reminders and contact channels.
-    // Other mutations (including messages and photo upload) fail before networking.
+    // Photo upload/removal is enabled; other mutations, including messages, fail before networking.
     private func taxonomyAssignment(_ path: String) -> Bool {
         let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
         return matches(path, "^/api/v1/people/" + id + "/(?:categories|interests)/" + id + "$")
+    }
+    private func photoPath(_ path: String) -> Bool {
+        let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+        return matches(path, "^/api/v1/people/" + id + "/photo$")
     }
     private func allowed(_ path: String, _ method: String) -> Bool {
         let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
@@ -393,7 +397,8 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
             (method == "POST" && matches(path, "^/api/v1/people/" + id + "/contact-events$")) ||
             ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/(?:contact-events|reminders)/" + id + "$")) ||
             (method == "POST" && matches(path, "^/api/v1/people/" + id + "/contact-channels$")) ||
-            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/contact-channels/" + id + "$"))
+            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/contact-channels/" + id + "$")) ||
+            ((method == "POST" || method == "DELETE") && photoPath(path))
     }
     @objc public func request(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -405,17 +410,46 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
                   self.allowed(path, method) else {
                 call.reject("This action is not enabled in the iPhone app."); return
             }
-            let body = call.getString("body").map { Data($0.utf8) }
-            let assignment = self.taxonomyAssignment(path)
-            if (method == "GET" || method == "DELETE" || assignment) && body != nil { call.reject("Invalid request body."); return }
-            if (method == "POST" || method == "PATCH") && !assignment {
-                guard let body = body, body.count <= 100 * 1024,
-                      (try? JSONSerialization.jsonObject(with: body)) is [String: Any] else {
-                    call.reject("Invalid JSON request."); return
+            var body = call.getString("body").map { Data($0.utf8) }
+            var contentType: String? = body == nil ? nil : "application/json"
+            let photoUpload = method == "POST" && self.photoPath(path)
+            if photoUpload {
+                guard body == nil, let photo = call.getObject("photo"),
+                      let encoded = photo["base64"] as? String,
+                      encoded.utf8.count <= 6990508,
+                      let mime = photo["mimeType"] as? String,
+                      ["image/jpeg", "image/png", "image/webp"].contains(mime),
+                      let bytes = Data(base64Encoded: encoded),
+                      !bytes.isEmpty, bytes.count <= 5 * 1024 * 1024 else {
+                    call.reject("Choose one JPG, PNG or WebP image up to 5 MB."); return
+                }
+                let prefix = Array(bytes.prefix(12))
+                let jpeg = prefix.count >= 3 && Array(prefix.prefix(3)) == [255, 216, 255]
+                let png = prefix.count >= 8 && Array(prefix.prefix(8)) == [137, 80, 78, 71, 13, 10, 26, 10]
+                let webp = prefix.count >= 12 && Array(prefix[0..<4]) == [82, 73, 70, 70] && Array(prefix[8..<12]) == [87, 69, 66, 80]
+                guard (mime == "image/jpeg" && jpeg) || (mime == "image/png" && png) || (mime == "image/webp" && webp) else {
+                    call.reject("Image format does not match its content."); return
+                }
+                let boundary = "PNET-" + UUID().uuidString
+                let ext = mime == "image/jpeg" ? "jpg" : (mime == "image/png" ? "png" : "webp")
+                var multipart = Data(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"photo." + ext + "\"\r\nContent-Type: " + mime + "\r\n\r\n").utf8)
+                multipart.append(bytes)
+                multipart.append(Data(("\r\n--" + boundary + "--\r\n").utf8))
+                body = multipart
+                contentType = "multipart/form-data; boundary=" + boundary
+            } else {
+                guard call.getObject("photo") == nil else { call.reject("Unexpected image payload."); return }
+                let assignment = self.taxonomyAssignment(path)
+                if (method == "GET" || method == "DELETE" || assignment) && body != nil { call.reject("Invalid request body."); return }
+                if (method == "POST" || method == "PATCH") && !assignment {
+                    guard let body = body, body.count <= 100 * 1024,
+                          (try? JSONSerialization.jsonObject(with: body)) is [String: Any] else {
+                        call.reject("Invalid JSON request."); return
+                    }
                 }
             }
             self.send(id: id, path: path, method: method, body: body,
-                      contentType: body == nil ? nil : "application/json",
+                      contentType: contentType,
                       credentials: credentials, csrfValue: self.csrf) { data, response, error in
                 if let error = error { call.reject(error); return }
                 guard let response = response, let data = data else { call.reject("Invalid response."); return }

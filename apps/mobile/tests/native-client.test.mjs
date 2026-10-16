@@ -17,7 +17,7 @@ async function setup(overrides = {}) {
     cancel: async options => { calls.push({ cancel: options.id }); },
     ...overrides,
   };
-  const context = vm.createContext({ EventTarget, Event, Headers, Response, Uint8Array, atob, crypto, console });
+  const context = vm.createContext({ EventTarget, Event, Headers, Response, Uint8Array, atob, btoa, Blob, FormData, crypto, console });
   const dependency = new vm.SyntheticModule(['Capacitor', 'registerPlugin'], function () {
     this.setExport('Capacitor', { getPlatform: () => 'ios', isPluginAvailable: () => true });
     this.setExport('registerPlugin', () => native);
@@ -188,7 +188,7 @@ test('taxonomy routes reject malformed IDs, bulk deletes and unsupported assignm
     ]) await assert.rejects(client.apiFetch(path, { method }));
     await assert.rejects(client.apiFetch(`/api/v1/people/${id}/${kind}/${id}`, { method: 'POST', body: '{}' }));
   }
-  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/photo`, { method: 'POST', body: '{}' }));
+  await assert.rejects(client.apiFetch(`/api/v1/people/${id}/photo`, { method: 'PATCH', body: '{}' }));
   assert.equal(calls.length, 0);
 });
 
@@ -261,4 +261,71 @@ test('channel access cannot delete collections, send messages or mutate malforme
     ['/api/v1/messages', 'POST'], [`/api/v1/people/${id}`, 'DELETE'],
   ]) await assert.rejects(client.apiFetch(path, { method }));
   assert.equal(calls.length, 0);
+});
+
+
+const photoEndpoint = '/api/v1/people/00000000-0000-4000-8000-000000000001/photo';
+function imageForm(type = 'image/png', bytes = new Uint8Array([137,80,78,71,13,10,26,10])) {
+  const form = new FormData();
+  form.append('file', new Blob([bytes], { type }), 'private-name.png');
+  return form;
+}
+test('photo upload carries exact bytes and MIME without filename or credentials; removal is bodyless', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const form = imageForm();
+  await client.apiFetch(photoEndpoint, { method: 'POST', body: form });
+  assert.equal(calls[0].photo.base64, 'iVBORw0KGgo=');
+  assert.equal(calls[0].photo.mimeType, 'image/png');
+  assert.deepEqual(Object.keys(calls[0]).sort(), ['id', 'method', 'path', 'photo']);
+  assert.deepEqual(Object.keys(calls[0].photo).sort(), ['base64', 'mimeType']);
+  await client.apiFetch(photoEndpoint, { method: 'DELETE' });
+  assert.equal(Object.hasOwn(calls[1], 'body'), false);
+  assert.equal(Object.hasOwn(calls[1], 'photo'), false);
+});
+
+test('photo upload rejects unsupported files, extra parts, size violations and arbitrary multipart routes', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const extra = imageForm(); extra.append('note', 'extra');
+  const duplicate = imageForm(); duplicate.append('file', new Blob(['x']));
+  const text = new FormData(); text.append('file', 'text');
+  for (const body of [new FormData(), extra, duplicate, text, '{}',
+    imageForm('image/svg+xml'), imageForm('image/heic'),
+    imageForm('image/png', new Uint8Array()),
+    imageForm('image/png', new Uint8Array(5 * 1024 * 1024 + 1))]) {
+    await assert.rejects(client.apiFetch(photoEndpoint, { method: 'POST', body }));
+  }
+  await assert.rejects(client.apiFetch('/api/v1/people', { method: 'POST', body: imageForm() }));
+  await assert.rejects(client.apiFetch(photoEndpoint, { method: 'POST', body: imageForm(), headers: { 'Content-Type': 'multipart/form-data' } }));
+  await assert.rejects(client.apiFetch(photoEndpoint, { method: 'PATCH', body: '{}' }));
+  assert.equal(calls.length, 0);
+});
+
+test('abort or logout during image encoding prevents native upload', async () => {
+  for (const mode of ['abort', 'logout']) {
+    const { client, calls } = await setup();
+    await client.checkSession();
+    const form = imageForm();
+    let complete;
+    form.get('file').arrayBuffer = () => new Promise(resolve => { complete = resolve; });
+    const controller = new AbortController();
+    const pending = client.apiFetch(photoEndpoint, { method: 'POST', body: form, signal: controller.signal });
+    if (mode === 'abort') controller.abort(); else await client.signOut();
+    complete(new Uint8Array([137,80,78,71,13,10,26,10]).buffer);
+    await assert.rejects(pending);
+    assert.equal(calls.filter(call => call.method === 'POST').length, 0);
+  }
+});
+
+test('expired photo upload is attempted once and never automatically replayed', async () => {
+  let requests = 0;
+  const { client } = await setup({ request: async () => {
+    requests++;
+    throw Object.assign(new Error('Expired'), { code: 'SESSION_EXPIRED' });
+  } });
+  await client.checkSession();
+  await assert.rejects(client.apiFetch(photoEndpoint, { method: 'POST', body: imageForm() }));
+  await assert.rejects(client.apiFetch(photoEndpoint, { method: 'POST', body: imageForm() }), /Authentication required/);
+  assert.equal(requests, 1);
 });
