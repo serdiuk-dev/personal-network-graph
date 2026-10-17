@@ -44,7 +44,7 @@ test('contacts and binary photos are adapted to Response; no auth headers cross 
   assert.deepEqual([...new Uint8Array(await image.arrayBuffer())], [0, 1, 255]);
 });
 
-test('external URLs, traversal, query strings, credentials, contact deletes and uploads fail before bridge request', async () => {
+test('external URLs, traversal, query strings, credentials, bulk contact deletes and unsupported uploads fail before bridge request', async () => {
   const { client, calls } = await setup();
   await client.checkSession();
   for (const path of ['https://evil.invalid/api/v1/people', '//evil.invalid/api/v1/people', '/api/v1/../auth', '/api/v1/%2e%2e/auth', '/api/v1/people?url=evil']) {
@@ -133,7 +133,7 @@ test('relationship access does not enable other mutations or replay expired writ
     ['/api/v1/relationships', 'DELETE'], ['/api/v1/relationships', 'PATCH'],
     ['/api/v1/relationships/not-a-uuid', 'DELETE'],
     [`/api/v1/relationships/${id}/`, 'DELETE'], [`/api/v1/relationships/${id}/photo`, 'POST'],
-    [`/api/v1/people/${id}`, 'DELETE'], ['/api/v1/graph-styles', 'POST'],
+    [`/api/v1/people/${id}/extra`, 'DELETE'], ['/api/v1/graph-styles', 'POST'],
     ['/api/v1/auth/mobile/revoke', 'POST'], ['/api/v1/messages', 'POST'],
     [`/api/v1/relationships/${id}`, 'PUT'],
   ]) await assert.rejects(client.apiFetch(path, { method }));
@@ -258,7 +258,7 @@ test('channel access cannot delete collections, send messages or mutate malforme
     [`/api/v1/contact-channels/${id}`, 'POST'],
     [`/api/v1/contact-channels/${id}`, 'PUT'],
     [`/api/v1/contact-channels/${id}/send`, 'POST'],
-    ['/api/v1/messages', 'POST'], [`/api/v1/people/${id}`, 'DELETE'],
+    ['/api/v1/messages', 'POST'], [`/api/v1/people/${id}/extra`, 'DELETE'],
   ]) await assert.rejects(client.apiFetch(path, { method }));
   assert.equal(calls.length, 0);
 });
@@ -328,4 +328,63 @@ test('expired photo upload is attempted once and never automatically replayed', 
   await assert.rejects(client.apiFetch(photoEndpoint, { method: 'POST', body: imageForm() }));
   await assert.rejects(client.apiFetch(photoEndpoint, { method: 'POST', body: imageForm() }), /Authentication required/);
   assert.equal(requests, 1);
+});
+
+test('contact deletion and graph settings use exact routes and preserve responses', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const path = '/api/v1/people/00000000-0000-4000-8000-000000000001';
+  assert.equal((await client.apiFetch(path, { method: 'DELETE' })).status, 200);
+  const body = JSON.stringify({ innerRingColor: '#123456', innerRingOpacity: 0.3, innerRingWidth: 2 });
+  await client.apiFetch('/api/v1/graph-styles', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body,
+  });
+  assert.deepEqual(calls.map(c => [c.path, c.method]), [[path, 'DELETE'], ['/api/v1/graph-styles', 'PATCH']]);
+  assert.deepEqual(Object.keys(calls[0]).sort(), ['id', 'method', 'path']);
+  assert.equal(calls[1].body, body);
+  for (const status of [204, 400, 404, 500]) {
+    const result = await setup({ request: async () => ({ status, contentType: 'application/json', body: status === 204 ? '' : 'e30=' }) });
+    await result.client.checkSession();
+    const response = await result.client.apiFetch(path, { method: 'DELETE' });
+    assert.equal(response.status, status);
+    assert.equal(response.ok, status === 204);
+  }
+});
+
+test('contact deletion and graph settings reject bulk, malformed, nested and unsupported writes', async () => {
+  const { client, calls } = await setup();
+  await client.checkSession();
+  const path = '/api/v1/people/00000000-0000-4000-8000-000000000001';
+  for (const [url, method] of [
+    ['/api/v1/people', 'DELETE'], ['/api/v1/people/not-a-uuid', 'DELETE'],
+    [path + '/', 'DELETE'], [path + '/extra', 'DELETE'], [path, 'PUT'],
+    ['/api/v1/graph-styles', 'POST'], ['/api/v1/graph-styles', 'DELETE'],
+    ['/api/v1/graph-styles', 'PUT'], ['/api/v1/graph-styles/', 'PATCH'],
+    ['/api/v1/graph-styles/1', 'PATCH'], ['/api/v1/messages', 'POST'],
+  ]) await assert.rejects(client.apiFetch(url, { method }));
+  await assert.rejects(client.apiFetch(path, { method: 'DELETE', body: '{}' }));
+  await assert.rejects(client.apiFetch('/api/v1/graph-styles', { method: 'PATCH', body: new FormData() }));
+  assert.equal(calls.length, 0);
+});
+
+test('contact deletion and graph settings never replay failed or expired mutations', async () => {
+  for (const [path, method, body] of [
+    ['/api/v1/people/00000000-0000-4000-8000-000000000001', 'DELETE', undefined],
+    ['/api/v1/graph-styles', 'PATCH', '{"innerRingWidth":2}'],
+  ]) {
+    for (const code of ['SESSION_EXPIRED', 'NETWORK_ERROR']) {
+      let writes = 0;
+      const { client } = await setup({ request: async () => {
+        writes++;
+        throw Object.assign(new Error('Failed'), { code });
+      } });
+      await client.checkSession();
+      await assert.rejects(client.apiFetch(path, { method, body }));
+      assert.equal(writes, 1);
+      if (code === 'SESSION_EXPIRED') {
+        await assert.rejects(client.apiFetch(path, { method, body }), /Authentication required/);
+        assert.equal(writes, 1);
+      }
+    }
+  }
 });

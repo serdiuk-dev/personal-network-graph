@@ -372,7 +372,7 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // Connected reads; contact create/update, relationships, taxonomy, events, reminders and contact channels.
+    // Connected reads; contact create/update/delete, graph settings, relationships, taxonomy, events, reminders and contact channels.
     // Photo upload/removal is enabled; other mutations, including messages, fail before networking.
     private func taxonomyAssignment(_ path: String) -> Bool {
         let id = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
@@ -388,7 +388,8 @@ public final class PNETTransportPlugin: CAPPlugin, CAPBridgedPlugin {
             return matches(path, "^/api/v1/(?:people(?:/" + id + "(?:/(?:photo|contact-events|contact-channels))?)?|graph|graph-styles|analytics/network|categories|interests|relationships|relationship-styles|reminders/(?:upcoming|history))$")
         }
         return (method == "POST" && path == "/api/v1/people") ||
-            (method == "PATCH" && matches(path, "^/api/v1/people/" + id + "$")) ||
+            ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/people/" + id + "$")) ||
+            (method == "PATCH" && path == "/api/v1/graph-styles") ||
             (method == "POST" && path == "/api/v1/relationships") ||
             ((method == "PATCH" || method == "DELETE") && matches(path, "^/api/v1/relationships/" + id + "$")) ||
             (method == "POST" && (path == "/api/v1/categories" || path == "/api/v1/interests")) ||

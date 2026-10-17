@@ -80,6 +80,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   if (!/^\/api\/v1\/[A-Za-z0-9/-]+$/.test(path)) throw new Error('Invalid API path.');
   const method = (init.method ?? 'GET').toUpperCase();
   const uuid = '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}';
+  const person = new RegExp(`^/api/v1/people/${uuid}$`).test(path);
   const relationship = new RegExp(`^/api/v1/relationships/${uuid}$`).test(path);
   const taxonomyItem = new RegExp(`^/api/v1/(?:categories|interests)/${uuid}$`).test(path);
   const assignment = new RegExp(`^/api/v1/people/${uuid}/(?:categories|interests)/${uuid}$`).test(path);
@@ -90,8 +91,8 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const photoPath = new RegExp(`^/api/v1/people/${uuid}/photo$`).test(path);
   const mutationAllowed =
     (method === 'POST' && ['/api/v1/people', '/api/v1/relationships', '/api/v1/categories', '/api/v1/interests'].includes(path)) ||
-    (method === 'PATCH' && (new RegExp(`^/api/v1/people/${uuid}$`).test(path) || relationship || taxonomyItem)) ||
-    (method === 'DELETE' && (relationship || taxonomyItem)) ||
+    (method === 'PATCH' && (person || relationship || taxonomyItem || path === '/api/v1/graph-styles')) ||
+    (method === 'DELETE' && (person || relationship || taxonomyItem)) ||
     ((method === 'POST' || method === 'DELETE') && assignment) ||
     (method === 'POST' && eventCollection) ||
     ((method === 'PATCH' || method === 'DELETE') && eventOrReminder) ||
