@@ -1,3 +1,36 @@
+# iPhone validation evidence
+
+## Current acceptance — 2026-10-18
+
+This section supersedes historical pending/offline-only statements below.
+Published source checkpoint: b5bdba35e129fc77e3ff304cecd41eec8a223f93.
+Core feature acceptance is recorded in mobile-faceid, mobile-relationships,
+mobile-taxonomy, mobile-events-reminders, mobile-contact-channels, mobile-photos
+and mobile-contact-delete-graph-styles documents under docs/roadmap.
+
+Owner additionally confirmed on the physical iPhone:
+- Individual relationship color/width saved, reopened and checked in WEB.
+- Two-finger zoom on empty graph space and starting over a contact.
+- Landscape/safe-area scenario, keyboard access to lower Notes/Save controls.
+- Network overview and search/filter scenario.
+- Increased-text scenario and basic VoiceOver navigation/labels.
+- Offline test-contact save reported failure; no automatic send after reconnect.
+- Face ID cancellation kept protected content hidden; retry worked.
+- Following signing/trust recovery, app launch worked again on 2026-10-18.
+- On 2026-10-18 owner confirmed the 16-minute closed-app return scenario and
+  the photo-upload/background scenario as working. These are UI-level reports:
+  no token-rotation trace or proof of interruption during an in-flight upload.
+
+Confirmed device context: iPhone 13 Pro / iOS 26.6 (23G71). These checks do not
+establish full accessibility compliance or coverage of all targeted devices.
+Personal Team confirmed; Xcode showed a profile created 2026-10-18 with
+"Expires in 6 days". Exact installed-profile expiry was not extracted.
+An observed untrusted-developer launch error was resolved; the original
+"No Longer Available" error was not independently attributed to profile expiry.
+
+Release is NOT yet accepted. See docs/roadmap/mobile-release-candidate.md
+(from repository root) for remaining gates and explicit limitations.
+
 # Offline prototype acceptance — historical checkpoint
 
 - Bundled mobile frontend build passed.

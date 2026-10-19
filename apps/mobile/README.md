@@ -1,83 +1,60 @@
-# iPhone connected preview — first transport checkpoint
+# Personal Network Graph — iPhone
 
-The accepted WEB v0.44.0 React UI is reused without changing WEB/API sources.
-The offline acceptance is preserved at commit 1fb5aa272509f050f8442809c0bc0445c64af01f.
-This implementation has NOT yet passed Xcode compilation or physical-device
-server acceptance. Do not call it a completed mobile release.
+Current status (2026-10-18): core connected features and scoped physical-device
+scenarios accepted by owner. Release Candidate and merge/release are not complete.
+Published implementation: feature/iphone-app at
+b5bdba35e129fc77e3ff304cecd41eec8a223f93.
 
-## Enabled scope
+## Supported functions
 
-- Gateway BasicAuth plus existing owner password and TOTP/recovery-code login.
-- Existing cookie session, 30-minute idle / 12-hour maximum server lifetime.
-- Session recovery, read-only graph/contact/photo/related data, owner logout.
-- Create and edit contacts. Other mutations fail locally with an explicit error.
-- Contact deletion, photo upload/deletion, relationships/taxonomy/reminder changes
-  and outbound messages remain pending later checkpoints.
+Contacts (create/edit/delete), connections, categories/interests and assignments,
+events/reminders, contact channels, private photos/icons, global graph settings,
+individual relationship styles, network overview and search/filters.
+JPG/PNG/WebP up to 5 MiB; HEIC is unsupported. No iOS push/local notifications.
+Message sending routes remain blocked. Social adapters remain deferred.
+Graph appearance preferences use ephemeral WebView storage and may reset on
+restart; server-backed global graph styles and relationship styles persist.
 
-## Security boundary
+## Authentication and privacy
 
-`native/PNETNative.swift` owns a fixed HTTPS destination, an endpoint/method
-allowlist, gateway Authorization, cookie and exact Origin/CSRF headers. It never
-accepts caller-controlled URLs or auth headers and rejects every redirect.
-Default Apple TLS validation remains in force; no ATS exceptions or trust bypass.
-The current server auth guard, BasicAuth, CSRF, origin rules and TLS are unchanged.
-No CORS exception or alternate unauthenticated server route is introduced.
+Initial enrollment: gateway BasicAuth, owner password and TOTP/recovery code,
+then Face ID. Subsequent unlock uses device-only Keychain with
+WhenPasscodeSetThisDeviceOnly and biometryCurrentSet. Owner password/TOTP are
+not persisted. Access sessions last 15 minutes; device trust lasts 30 days,
+with a 7-day inactivity limit and rotating refresh credentials.
+WEB can revoke a device. See ../../docs/roadmap/mobile-faceid.md.
 
-Gateway credentials and the opaque session cookie are stored in one exact
-Keychain item using WhenUnlockedThisDeviceOnly with synchronization disabled.
-Owner password and TOTP/recovery code are never persisted by the app. JavaScript
-receives neither cookie nor gateway credentials on session restoration. Login
-fields travel once over the local bridge; bridge logging and WebView inspection
-are disabled. Do not enable logging or inspector with real credentials/data.
+PNETNative.swift owns the fixed HTTPS origin, exact route/method allowlist,
+credentials and Origin/CSRF headers. Redirects are rejected; default Apple TLS
+validation is retained. JS does not receive stored authentication tokens.
+URLSession and WKWebView storage are ephemeral. There is no offline contact/photo
+database or mutation retry queue. Backgrounding locks access and cancels requests;
+unsaved forms may be discarded. Cancellation cannot undo an already committed
+server write. Reconnect and inspect server state before retrying an uncertain write.
+A lost successful refresh response may require full re-enrollment; no grace window.
 
-URLSession uses ephemeral configuration with no cookie store, credential store
-or URL cache. WKWebView uses a nonpersistent data store. Contacts/photos live in
-memory; there is no offline database, retry queue or disk export. Appearance
-preferences may reset when the app restarts because WebView storage is ephemeral.
-The native privacy cover hides the app-switcher snapshot. On visibility return,
-the UI verifies the session before remounting protected content. Backgrounding
-can discard unsaved form drafts. App reads do update the server idle-session time.
+## Development and installation
 
-Logout success revokes the server session and removes the Keychain item. A gateway
-401 during logout is reported as failure because backend revocation is unknown.
-A network error during a write is ambiguous: reload/check the server before
-retrying; the client does not automatically retry mutations.
+Use nvm use from the repository root (.nvmrc: 24.21.0). Do not change global Node
+or adjacent projects. Mobile dependency installation is scoped to apps/mobile.
+For code changes: targeted checks, npm run build, npm run ios:sync, installer
+--check, then compile/install via Xcode on the intended device.
 
-## Native installation
+Generated ios/ stays outside Git. The native installer manages its overlay,
+SceneDelegate/controller setup and Face ID usage description with drift guards
+and backups under ios/pnet-native-backups/. Do not edit generated native files
+manually. --restore restores the original native setup, not the previous mobile
+feature checkpoint; keep backups and use known-good source for feature rollback.
 
-`ios/` remains ignored. Do not run `ios:add` again or regenerate signing.
-`python3 scripts/install-native.py --check` validates the existing Xcode layout.
-The installer appends a managed block to the existing compiled AppDelegate.swift
-and selects PNETViewController in Main.storyboard. It leaves SceneDelegate,
-project.pbxproj, provisioning and signing settings untouched. Original native
-files are backed up under ignored `ios/pnet-native-backups/`; hash-guarded restore:
-`python3 scripts/install-native.py --restore`. Keep all those local backups.
+Personal Team signing and trust recovery:
+[PNET iPhone signing guide](../../docs/roadmap/mobile-signing-guide.md).
+No App Store distribution has been requested.
 
-`npm run ios:sync` now reapplies the native installer after Capacitor sync and the
-existing deployment-target script. New native source must stay in `native/`, not
-only in generated `ios/`. Source edits must be installed again before Xcode build.
+## Validation and deployment
 
-## Verification sequence
-
-1. Use the existing isolated Node 24.21.0 environment in apps/mobile.
-2. Run `npm run test:transport`, `npm run build`, native installer `--check`.
-3. Run `npm run ios:sync` and compile the iOS simulator target without signing.
-4. Then run on the existing physical device. Enter gateway and owner credentials
-   only in the app, never in shell commands/chat/files. Use a fresh TOTP code;
-   recovery codes invalidate existing sessions and are for actual recovery.
-5. Validate reads, create one clearly synthetic contact, edit it, and verify in
-   WEB that changes persisted. Remove the test contact through WEB afterward.
-6. Verify restart/session restore, sign out, invalid credentials without repeated
-   attempts, idle expiry, connection-loss messaging and background privacy.
-
-No production deploy or rebuild is needed for this implementation. Main, tags,
-WEB/API code, backups, rollback images and ~/19games are untouched.
-
-
-## Face ID candidate (requires new API and database migration)
-
-The earlier no-server-deployment instructions apply only to connected-v1.
-This candidate adds Face ID-gated trusted-device enrollment/renewal. Do not
-install this candidate on the phone until the API migration and deployment
-have completed. See docs/roadmap/mobile-faceid.md for prerequisites, tests,
-limits, revocation, recovery and rollout.
+[VALIDATION.md](VALIDATION.md) records dated evidence; historical sections are not
+current feature restrictions. [Release preparation](../../docs/roadmap/mobile-release-candidate.md)
+tracks open gates and limitations. Do not repeat completed acceptance by default.
+Face ID API deployment/migration already occurred; later mobile-only changes do
+not require deployment. Preserve backups, rollback images and the historical
+Prisma migration checksum repair. Cleanup is last.
