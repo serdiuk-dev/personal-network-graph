@@ -152,10 +152,7 @@ export function PersonMediaManager({ personId, personName, onClose }: {
         {CONTACT_ICONS.map(icon => (
           <button key={icon.id} type="button" onClick={() => void chooseIcon(icon.id)}
             aria-label={`Choose ${icon.label} icon`}>
-            <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false">
-              <rect width="24" height="24" fill="#eff6ff" />
-              <path d={icon.path} fill="#2563eb" fillRule="evenodd" />
-            </svg>
+            <img src={icon.url} width="40" height="40" alt="" />
             <span>{icon.label}</span>
           </button>
         ))}
