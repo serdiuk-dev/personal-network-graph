@@ -65,3 +65,19 @@ open -a Xcode "/Users/oleksandr/AlivePicture/_Claude/Network_Graph/personal-netw
 
 [Apple: Developer account overview — ограничения Personal Team](https://developer.apple.com/help/account/basics/about-your-developer-account).
 Порядок восстановления доверия также указан в фактической ошибке Xcode проекта.
+
+
+## Восстановление после обновления телефона — 6 ноября 2026
+
+Если Xcode сообщает Developer Mode disabled:
+1. На iPhone: Настройки → Конфиденциальность и безопасность →
+   Режим разработчика (Developer Mode).
+2. Включи переключатель и нажми Restart.
+3. После перезагрузки разблокируй iPhone, подтверди Turn On
+   и введи код-пароль.
+4. На Mac в Xcode выбери физический iPhone и нажми Run.
+   Сохрани прежние Team и Bundle Identifier.
+
+Этот порядок восстановления выполнен; владелец подтвердил запуск приложения.
+Обновление телефона не означает, что эти действия нужны каждый раз:
+ориентируйся на фактическое сообщение iOS/Xcode.

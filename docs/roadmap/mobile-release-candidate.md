@@ -46,3 +46,48 @@ adapters and iOS notifications are outside current implemented scope.
 Optimization/cleanup follows core completion and release review. Inventory first;
 keep backups, usable rollback images and native installer backups. Do not touch
 Traefik, n8n, OpenGym, adjacent projects or global Node. Social adapters stay backlog.
+
+
+## Updated candidate evidence — 2026-11-06
+
+This section supersedes the obsolete status/checkpoint at the top and the
+pending logout/foreground-expiry items in gate 3.
+
+Candidate: f371a1974ba2555c929a8c1e0b2ea020a9db0394.
+Status: device acceptance updated; final release review and approval pending.
+
+Completed:
+- WEB icon deployment returned DEPLOY_OK: API_WEB_HEALTHY_DB_UNCHANGED;
+  the owner subsequently confirmed WEB operation.
+- The existing Node 24.22.1 API image was retained.
+- iPhone restoration, eight-icon visibility and foreground 16-minute
+  note-save/WEB verification were confirmed by the owner.
+- Explicit logout, inactive old connection, re-enrollment and Face ID
+  were already accepted.
+- Completed tests and deployments are not to be repeated merely for onboarding.
+
+Deployment/rollback record:
+- API: sha256:1fb584fdd52ae9b2aca0df6282f04e71f0a596a409c6fe9ffd585ec81ae49588
+- WEB: sha256:0a0183e4db64c138d05a6ad2f36ba7114821c464b5872772f1c67e76b4a80aae
+- VDS rollback image references: /root/pnet-icons-rollback.SK6zvJiM
+- Compose host PNET_AUTH_KEY_FILE must be /opt/pnet-secrets/auth-key;
+  the API-internal value is /run/secrets/pnet_auth_key.
+  Do not reuse the earlier rollout wrapper that copied the internal path
+  into the host Compose environment.
+- No migration was performed for this icon deployment.
+
+Remaining review:
+- Map historical test evidence to candidate changes; no full-system test
+  pass is claimed for this exact candidate.
+- scripts/auth/test-isolated.sh has historical branch/HEAD guards:
+  do not run it unchanged or bypass those guards.
+- Refresh-response loss, biometric-set changes, native redirect/TLS failures
+  and interrupted writes remain unverified native scenarios.
+- Proposed scope is a private Personal Team development installation.
+  Public/App Store distribution is not accepted.
+- Device/accessibility coverage, HEIC/size boundaries, notification delivery
+  and interruption evidence retain their documented limitations.
+- Confirm retained native backups and signing guidance, review final diff,
+  explicitly decide remaining blockers/exclusions, then obtain release approval.
+- Preserve backups and rollback. No additional deployment is required solely
+  for documentation. Optimization/cleanup comes last; social adapters deferred.

@@ -97,3 +97,23 @@ This section supersedes earlier pending compilation and contact acceptance.
 See docs/roadmap/mobile-faceid.md for the implementation, verification evidence,
 remaining PostgreSQL/Swift/device checks and staged rollout order. The earlier
 connected-v1 acceptance does not imply Face ID acceptance.
+
+
+## Additional owner acceptance — 2026-11-06
+
+Candidate: f371a1974ba2555c929a8c1e0b2ea020a9db0394.
+This section updates the historical pending statements above.
+
+- Explicit logout, old connection inactive in WEB, re-enrollment and Face ID
+  were previously confirmed by the owner.
+- After the phone update, Developer Mode recovery and Xcode installation,
+  the owner confirmed that the physical iPhone app works.
+- All eight new category icons are visible on the iPhone.
+- After the requested 16-minute foreground wait, saving a test-contact note
+  produced no reported message; the note appeared in WEB.
+  This is UI-level acceptance, not proof of a particular token refresh path.
+- Supplied Mac output confirms mobile build reached ios:sync, target 26.0,
+  NATIVE_TRANSPORT_ALREADY_INSTALLED and NATIVE_INSTALL_GUARDS_OK.
+- Bundle-size optimization remains deferred.
+- No new native fault-injection, device-range or accessibility evidence
+  is claimed. Release approval remains pending.
